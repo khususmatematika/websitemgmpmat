@@ -59,7 +59,7 @@
                 <p class="text-on-surface-variant">{{ $jenjangList[$jenjang] }} &middot; Semester {{ $semester }}</p>
             </section>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
                     @forelse ($materials as $m)
                     <div class="group bg-white p-5 rounded-xl shadow-[0px_4px_12px_rgba(27,54,93,0.05)] border border-transparent hover:border-math-teal transition-all">
@@ -85,8 +85,8 @@
                     @endforelse
                 </div>
 
-                <div class="lg:col-span-1">
-                    <div class="sticky top-24 bg-white rounded-xl shadow-[0px_4px_12px_rgba(27,54,93,0.05)] border border-outline-variant overflow-hidden flex flex-col h-[600px]">
+                <div class="lg:col-span-2">
+    <div class="lg:sticky lg:top-24 bg-white rounded-xl shadow-[0px_4px_12px_rgba(27,54,93,0.05)] border border-outline-variant overflow-hidden flex flex-col h-[500px] lg:h-[calc(100vh-140px)]">
                         <div class="p-4 border-b border-outline-variant bg-surface-container-low">
                             <h4 class="font-bold text-navy-deep text-sm truncate" id="preview-title">Embed Viewer</h4>
                         </div>

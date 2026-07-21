@@ -20,13 +20,10 @@
                 Jelajahi Pembelajaran
             </a>
 
-            <a href="#" onclick="return false;"
-               class="flex items-center justify-center gap-2 border-2 border-white/30 text-white px-6 py-3 rounded-md font-bold text-sm opacity-60 cursor-not-allowed">
+            <a href="{{ route('bank-soal.public') }}"
+            class="flex items-center justify-center gap-2 border-2 border-white/30 text-white px-6 py-3 rounded-md font-bold text-sm hover:bg-white/10 active:scale-95 transition-all">
                 <span class="material-symbols-outlined text-[20px]">quiz</span>
                 Bank Soal
-                <span class="bg-status-warning text-navy-deep text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap">
-                    Segera Hadir
-                </span>
             </a>
         </div>
     </div>
@@ -108,6 +105,19 @@
             <h3 class="font-label text-navy-deep">Latihan</h3>
         </a>
 
+    </div>
+
+    <div class="absolute inset-0 math-pattern opacity-10"></div>
+
+    {{-- Simbol matematika mengambang --}}
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <span class="floating-symbol absolute text-white/10 font-bold" style="left: 8%; top: 15%; font-size: 3rem; animation-delay: 0s;">∑</span>
+        <span class="floating-symbol absolute text-math-teal/20 font-bold" style="left: 85%; top: 20%; font-size: 2.5rem; animation-delay: 1.5s;">π</span>
+        <span class="floating-symbol absolute text-white/10 font-bold" style="left: 15%; top: 65%; font-size: 2rem; animation-delay: 3s;">√</span>
+        <span class="floating-symbol absolute text-math-teal/15 font-bold" style="left: 75%; top: 60%; font-size: 3.5rem; animation-delay: 0.8s;">∞</span>
+        <span class="floating-symbol absolute text-white/10 font-bold" style="left: 45%; top: 10%; font-size: 2rem; animation-delay: 2.2s;">∫</span>
+        <span class="floating-symbol absolute text-math-teal/10 font-bold hidden md:inline" style="left: 92%; top: 45%; font-size: 2rem; animation-delay: 1s;">Δ</span>
+        <span class="floating-symbol absolute text-white/10 font-bold hidden md:inline" style="left: 3%; top: 40%; font-size: 2.2rem; animation-delay: 2.8s;">θ</span>
     </div>
 </section>
 @endsection

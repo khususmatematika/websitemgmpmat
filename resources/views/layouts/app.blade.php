@@ -74,6 +74,14 @@
         #mobile-drawer { transition: transform 0.25s ease; }
         #mobile-drawer.hidden-drawer { transform: translateX(-100%); }
         #drawer-backdrop { transition: opacity 0.25s ease; }
+    
+    @keyframes floatSymbol {
+    0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+    50% { transform: translateY(-20px) rotate(8deg); opacity: 1; }
+}
+.floating-symbol {
+    animation: floatSymbol 6s ease-in-out infinite;
+}
     </style>
     @stack('styles')
 </head>
