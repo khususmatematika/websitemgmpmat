@@ -29,15 +29,30 @@ class GuruJournalController extends Controller
         return $map[now()->timezone('Asia/Jakarta')->format('l')];
     }
 
-    protected function topicsForClass(SchoolClass $schoolClass)
-    {
-        $jenjangPrefix = $schoolClass->jenjang;
+   protected function topicsForClass(SchoolClass $schoolClass)
+{
+    $jenjangCode = $this->resolveJenjangCode($schoolClass);
 
-        return MaterialTopic::where('jenjang', 'like', $jenjangPrefix . '-%')
-            ->orderBy('semester')
-            ->orderBy('order_index')
-            ->get();
+    return MaterialTopic::where('jenjang', $jenjangCode)
+        ->orderBy('semester')
+        ->orderBy('order_index')
+        ->get();
+}
+
+/**
+ * Kelas X selalu Fase E.
+ * Kelas XI/XII: class_type = 'reguler' -> Fase F, class_type = 'pilihan' -> Fase F+.
+ */
+protected function resolveJenjangCode(SchoolClass $schoolClass): string
+{
+    $jenjang = $schoolClass->jenjang;
+
+    if ($jenjang === 'X') {
+        return 'X-E';
     }
+
+    return $schoolClass->class_type === 'pilihan' ? "{$jenjang}-F+" : "{$jenjang}-F";
+}
 
     public function index(Request $request)
     {

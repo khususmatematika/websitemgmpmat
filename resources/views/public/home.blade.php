@@ -21,10 +21,10 @@
             </a>
 
             <a href="{{ route('bank-soal.public') }}"
-            class="flex items-center justify-center gap-2 border-2 border-white/30 text-white px-6 py-3 rounded-md font-bold text-sm hover:bg-white/10 active:scale-95 transition-all">
-                <span class="material-symbols-outlined text-[20px]">quiz</span>
-                Bank Soal
-            </a>
+   class="flex items-center justify-center gap-2 border-2 border-white/30 text-white px-6 py-3 rounded-md font-bold text-sm hover:bg-white/10 active:scale-95 transition-all">
+    <span class="material-symbols-outlined text-[20px]">quiz</span>
+    Bank Soal
+</a>
         </div>
     </div>
 
@@ -96,9 +96,9 @@
         </a>
 
         <a href="{{ route('bank-soal.public') }}" class="bg-white p-6 rounded-xl shadow-sm border border-outline-variant/30 hover:shadow-lg transition-all text-center">
-            <span class="material-symbols-outlined text-status-error text-4xl mb-3">quiz</span>
-            <h3 class="font-label text-navy-deep">Bank Soal</h3>
-        </a>
+    <span class="material-symbols-outlined text-status-error text-4xl mb-3">quiz</span>
+    <h3 class="font-label text-navy-deep">Bank Soal</h3>
+</a>
 
         <a href="{{ route('latihan.create') }}" class="bg-white p-6 rounded-xl shadow-sm border border-outline-variant/30 hover:shadow-lg transition-all text-center">
             <span class="material-symbols-outlined text-status-success text-4xl mb-3">history_edu</span>

@@ -8,13 +8,13 @@ use Illuminate\Http\Request;
 class AdminClassController extends Controller
 {
     protected function nav(): array
-{
-    return [
-        'navItems' => \App\Support\AdminNav::items(),
-        'guard' => 'admin',
-        'panelTitle' => 'Panel Admin',
-    ];
-}
+    {
+        return [
+            'navItems' => \App\Support\AdminNav::items(),
+            'guard' => 'admin',
+            'panelTitle' => 'Panel Admin',
+        ];
+    }
 
     public function index()
     {
@@ -32,6 +32,7 @@ class AdminClassController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100|unique:classes,name',
             'jenjang' => 'required|in:X,XI,XII',
+            'class_type' => 'required|in:reguler,pilihan',
         ]);
 
         SchoolClass::create($data);
@@ -49,6 +50,7 @@ class AdminClassController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100|unique:classes,name,' . $kelas->id,
             'jenjang' => 'required|in:X,XI,XII',
+            'class_type' => 'required|in:reguler,pilihan',
         ]);
 
         $kelas->update($data);

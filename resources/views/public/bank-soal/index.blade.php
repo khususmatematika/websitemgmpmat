@@ -33,7 +33,7 @@
         <h2 class="font-headline text-lg font-bold text-navy-deep mb-1">Generate Soal Baru dengan AI</h2>
         <p class="text-xs text-on-surface-variant mb-4">Sisa kuota generate hari ini: <strong>{{ $remaining }} dari 3</strong></p>
 
-        <form action="{{ route('bank-soal.generate') }}" method="POST" class="flex flex-col md:flex-row gap-3">
+        <form action="{{ route('bank-soal.generate') }}" method="POST" id="generate-form" class="flex flex-col md:flex-row gap-3">
             @csrf
             <select name="jenjang" id="gen-jenjang" class="rounded-md border-outline-variant text-sm flex-1">
                 @foreach ($jenjangList as $key => $label)
@@ -43,11 +43,11 @@
             <select name="topic" id="gen-topic" required class="rounded-md border-outline-variant text-sm flex-1">
                 <option value="">Pilih materi...</option>
             </select>
-            <button type="submit" @if($remaining <= 0) disabled @endif
-                    class="bg-math-teal text-white px-6 py-2 rounded-md font-bold text-sm hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
-                <span class="material-symbols-outlined text-[18px] align-middle">auto_awesome</span>
-                Generate 5 Soal
-            </button>
+            <button type="submit" id="generate-btn" @if($remaining <= 0) disabled @endif
+        class="bg-math-teal text-white px-6 py-2 rounded-md font-bold text-sm hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap">
+    <span class="material-symbols-outlined text-[18px] align-middle" id="generate-icon">auto_awesome</span>
+    <span id="generate-text">Generate 5 Soal</span>
+</button>
         </form>
     </div>
 
@@ -145,5 +145,12 @@ function refreshBankSoalTopics() {
 
 document.getElementById('gen-jenjang').addEventListener('change', refreshBankSoalTopics);
 document.addEventListener('DOMContentLoaded', refreshBankSoalTopics);
+</script>
+<script>
+document.getElementById('generate-form').addEventListener('submit', function () {
+    document.getElementById('generate-icon').classList.add('animate-spin');
+    document.getElementById('generate-text').textContent = 'Sedang generate soal...';
+    document.getElementById('generate-btn').disabled = true;
+});
 </script>
 @endsection

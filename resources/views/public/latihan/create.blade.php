@@ -35,31 +35,33 @@
         </div>
 
         <div>
-    <label class="text-sm font-medium text-on-surface-variant">Jenjang / Kelas</label>
-    <select name="jenjang" id="jenjang-select" required class="mt-1 w-full rounded-md border-outline-variant">
-        <option value="">Pilih kelas terlebih dahulu...</option>
-        @foreach ($jenjangList as $key => $label)
-            <option value="{{ $key }}">{{ $label }}</option>
-        @endforeach
-    </select>
-</div>
+            <label class="text-sm font-medium text-on-surface-variant">Jenjang / Kelas</label>
+            <select name="jenjang" id="jenjang-select" required class="mt-1 w-full rounded-md border-outline-variant">
+                <option value="">Pilih kelas terlebih dahulu...</option>
+                @foreach ($jenjangList as $key => $label)
+                    <option value="{{ $key }}">{{ $label }}</option>
+                @endforeach
+            </select>
+        </div>
 
-<div>
-    <label class="text-sm font-medium text-on-surface-variant">Materi</label>
-    <select name="topic" id="topic-select" required disabled
-            class="mt-1 w-full rounded-md border-outline-variant disabled:bg-surface-container disabled:cursor-not-allowed">
-        <option value="">Pilih kelas dahulu di atas</option>
-    </select>
-</div>
+        <div>
+            <label class="text-sm font-medium text-on-surface-variant">Materi</label>
+            <select name="topic" id="topic-select" required disabled
+                    class="mt-1 w-full rounded-md border-outline-variant disabled:bg-surface-container disabled:cursor-not-allowed">
+                <option value="">Pilih kelas dahulu di atas</option>
+            </select>
+        </div>
 
         <button type="submit" id="submit-btn" @if($remaining <= 0) disabled @endif
                 class="w-full bg-math-teal text-white py-3 rounded-md font-bold hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             Mulai Latihan
         </button>
+        @if ($remaining <= 0)
+            <p class="text-xs text-status-error text-center">Kuota latihan hari ini sudah habis (3x/hari).</p>
+        @endif
     </form>
 </div>
 
-@push('scripts')
 <script>
 const allTopicsLatihan = @json(\App\Models\MaterialTopic::orderBy('semester')->orderBy('order_index')->get(['jenjang', 'title']));
 
@@ -84,6 +86,18 @@ document.getElementById('jenjang-select').addEventListener('change', function ()
         filtered.map(t => `<option value="${t.title}">${t.title}</option>`).join('');
     topicSelect.disabled = false;
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const nameInput = document.getElementById('student_name');
+    const saved = localStorage.getItem('student_display_name');
+    if (saved && !nameInput.value) nameInput.value = saved;
+
+    document.getElementById('latihan-form').addEventListener('submit', function () {
+        localStorage.setItem('student_display_name', nameInput.value);
+        const btn = document.getElementById('submit-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px] align-middle">progress_activity</span> Menyiapkan 10 soal...';
+    });
+});
 </script>
-@endpush
 @endsection

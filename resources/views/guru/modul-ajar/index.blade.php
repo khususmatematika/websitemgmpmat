@@ -18,24 +18,31 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     @forelse ($modules as $m)
-    <div class="bg-white p-5 rounded-xl shadow-sm border border-outline-variant/30">
-        <div class="flex items-start justify-between mb-2">
-            <h3 class="font-bold text-navy-deep">{{ $m->materi }}</h3>
-            @if ($m->status === 'completed')
-                <span class="text-xs font-bold text-status-success bg-status-success/10 px-2 py-1 rounded-full">Selesai</span>
-            @elseif ($m->status === 'failed')
-                <span class="text-xs font-bold text-status-error bg-error-container px-2 py-1 rounded-full">Gagal</span>
-            @else
-                <span class="text-xs font-bold text-status-warning bg-status-warning/10 px-2 py-1 rounded-full">Diproses</span>
-            @endif
-        </div>
-        <p class="text-xs text-on-surface-variant mb-4">{{ $m->kelas }} &middot; {{ $m->meetings_count }} Pertemuan &middot; {{ $m->created_at->format('d M Y') }}</p>
-        <div class="flex gap-3">
-            <a href="{{ route('guru.modul-ajar.show', $m) }}" class="text-math-teal text-sm font-bold">Lihat Detail</a>
-            <form action="{{ route('guru.modul-ajar.destroy', $m) }}" method="POST" onsubmit="return confirm('Hapus modul ajar ini?')">
-                @csrf @method('DELETE')
-                <button class="text-status-error text-sm font-bold">Hapus</button>
-            </form>
+    <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden hover:shadow-md transition-shadow">
+        <div class="h-1.5 {{ $m->status === 'completed' ? 'bg-status-success' : ($m->status === 'failed' ? 'bg-status-error' : 'bg-status-warning') }}"></div>
+        <div class="p-5">
+            <div class="flex items-start justify-between mb-2">
+                <h3 class="font-bold text-navy-deep pr-2">{{ $m->materi }}</h3>
+                @if ($m->status === 'completed')
+                    <span class="text-xs font-bold text-status-success bg-status-success/10 px-2 py-1 rounded-full whitespace-nowrap">Selesai</span>
+                @elseif ($m->status === 'failed')
+                    <span class="text-xs font-bold text-status-error bg-error-container px-2 py-1 rounded-full whitespace-nowrap">Gagal</span>
+                @else
+                    <span class="text-xs font-bold text-status-warning bg-status-warning/10 px-2 py-1 rounded-full whitespace-nowrap">Diproses</span>
+                @endif
+            </div>
+            <p class="text-xs text-on-surface-variant mb-4">{{ $m->kelas }} &middot; {{ $m->meetings_count }} Pertemuan &middot; {{ $m->created_at->format('d M Y') }}</p>
+            <div class="flex gap-4 pt-3 border-t border-outline-variant">
+                <a href="{{ route('guru.modul-ajar.show', $m) }}" class="flex items-center gap-1 text-math-teal text-sm font-bold">
+                    <span class="material-symbols-outlined text-[16px]">visibility</span> Lihat Detail
+                </a>
+                <form action="{{ route('guru.modul-ajar.destroy', $m) }}" method="POST" onsubmit="return confirm('Hapus modul ajar ini?')">
+                    @csrf @method('DELETE')
+                    <button class="flex items-center gap-1 text-status-error text-sm font-bold">
+                        <span class="material-symbols-outlined text-[16px]">delete</span> Hapus
+                    </button>
+                </form>
+            </div>
         </div>
     </div>
     @empty

@@ -42,7 +42,7 @@
         </form>
     </div>
 
-    @foreach ($comment->replies as $reply)
-        @include('public.student-works.partials.comment', ['comment' => $reply, 'work' => $work, 'reasons' => $reasons, 'depth' => $depth + 1])
-    @endforeach
+   @foreach ($work->comments as $comment)
+    @include('public.student-works.partials.comment', ['comment' => $comment, 'work' => $work, 'reasons' => $reasons, 'depth' => 0])
+@endforeach
 </div>

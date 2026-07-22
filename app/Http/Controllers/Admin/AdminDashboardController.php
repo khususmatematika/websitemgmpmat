@@ -2,6 +2,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\SchoolClass;
+use App\Models\Student;
+use App\Models\Teacher;
 
 class AdminDashboardController extends Controller
 {
@@ -16,6 +19,12 @@ class AdminDashboardController extends Controller
 
     public function index()
     {
-        return view('admin.dashboard', $this->nav());
+        $stats = [
+            'total_students' => Student::count(),
+            'total_classes' => SchoolClass::count(),
+            'total_teachers' => Teacher::count(),
+        ];
+
+        return view('admin.dashboard', ['stats' => $stats] + $this->nav());
     }
 }

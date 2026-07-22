@@ -20,12 +20,7 @@
             @foreach ($jenjangList as $key => $label)<option value="{{ $key }}">{{ $label }}</option>@endforeach
         </select>
     </div>
-    <div>
-        <label class="text-sm font-medium">Topik</label>
-        <select name="topic" class="mt-1 w-full rounded-md border-outline-variant">
-            @foreach (\App\Support\MathTopics::TOPICS as $t)<option value="{{ $t }}">{{ $t }}</option>@endforeach
-        </select>
-    </div>
+    
     <div><label class="text-sm font-medium">File Soal (PDF/JPG/PNG, maks 10MB)</label><input type="file" name="file" class="mt-1 w-full text-sm"></div>
     <button class="bg-math-teal text-white px-6 py-3 rounded-md font-bold">Upload</button>
 </form>

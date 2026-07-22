@@ -6,6 +6,7 @@ use App\Models\ActivityLog;
 use App\Models\SchoolClass;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class GuruProfileController extends Controller
 {
@@ -23,9 +24,17 @@ class GuruProfileController extends Controller
         $teacher = Auth::guard('guru')->user();
         $classes = SchoolClass::orderBy('name')->get();
 
+        // Ambil SEMUA baris jadwal langsung dari tabel pivot (bukan lewat relasi belongsToMany
+        // yang bisa membingungkan tampilannya), supaya kelas yang sama di hari berbeda tetap muncul terpisah.
+        $schedules = DB::table('teacher_class')
+            ->where('teacher_id', $teacher->id)
+            ->orderBy('id')
+            ->get();
+
         return view('guru.profile.edit', [
-            'teacher' => $teacher->load('classes'),
+            'teacher' => $teacher,
             'classes' => $classes,
+            'schedules' => $schedules,
         ] + $this->nav());
     }
 
@@ -33,9 +42,6 @@ class GuruProfileController extends Controller
     {
         $teacher = Auth::guard('guru')->user();
 
-        // Sanitasi jadwal sebelum divalidasi:
-        // - Potong ke format HH:MM saja (kalau ada detik "HH:MM:SS")
-        // - Kosongkan jadi null kalau memang tidak diisi
         $schedules = $request->input('schedules', []);
         foreach ($schedules as $i => $sch) {
             foreach (['start_time', 'end_time'] as $field) {
@@ -65,17 +71,23 @@ class GuruProfileController extends Controller
 
         $teacher->update(collect($data)->except(['schedules', 'photo'])->toArray() + ($request->hasFile('photo') ? ['photo' => $data['photo']] : []));
 
-        if ($request->has('schedules')) {
-            $sync = [];
-            foreach ($request->schedules as $s) {
-                if (empty($s['class_id'])) continue;
-                $sync[$s['class_id']] = [
-                    'day' => $s['day'] ?? null,
-                    'start_time' => $s['start_time'] ?? null,
-                    'end_time' => $s['end_time'] ?? null,
-                ];
-            }
-            $teacher->classes()->sync($sync);
+        // Hapus SEMUA jadwal lama guru ini, lalu insert ulang SETIAP baris apa adanya.
+        // Sengaja TIDAK pakai sync()/updateOrCreate berbasis class_id, karena itu akan
+        // menimpa baris dengan class_id yang sama (misal 1 kelas diajar di 2 hari berbeda).
+        DB::table('teacher_class')->where('teacher_id', $teacher->id)->delete();
+
+        foreach ($request->input('schedules', []) as $s) {
+            if (empty($s['class_id'])) continue;
+
+            DB::table('teacher_class')->insert([
+                'teacher_id' => $teacher->id,
+                'class_id' => $s['class_id'],
+                'day' => $s['day'] ?? null,
+                'start_time' => $s['start_time'] ?? null,
+                'end_time' => $s['end_time'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
 
         ActivityLog::create([
