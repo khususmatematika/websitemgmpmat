@@ -17,6 +17,7 @@
             <tr>
                 <th class="p-4 text-left">Nama Kelas</th>
                 <th class="p-4 text-left">Jenjang</th>
+                <th class="p-4 text-left">Fase</th>
                 <th class="p-4 text-left">Jumlah Siswa</th>
                 <th class="p-4 text-right">Aksi</th>
             </tr>
@@ -26,6 +27,7 @@
             <tr class="border-t border-outline-variant">
                 <td class="p-4 font-medium text-navy-deep">{{ $c->name }}</td>
                 <td class="p-4">{{ $c->jenjang }}</td>
+                <td class="p-4"><span class="text-xs px-2 py-1 rounded-full bg-math-teal/10 text-math-teal font-bold">{{ $c->fase ?? '-' }}</span></td>
                 <td class="p-4">{{ $c->students_count }}</td>
                 <td class="p-4 text-right space-x-2">
                     <a href="{{ route('admin.kelas.edit', $c) }}" class="text-math-teal font-bold">Edit</a>

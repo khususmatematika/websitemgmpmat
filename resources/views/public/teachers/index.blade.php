@@ -14,6 +14,10 @@
     .card-back { pointer-events: none; }
     .teacher-card:hover .card-front { pointer-events: none; }
     .teacher-card:hover .card-back { pointer-events: auto; }
+
+    .custom-scrollbar-dark::-webkit-scrollbar { width: 4px; }
+.custom-scrollbar-dark::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar-dark::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
 </style>
 @endpush
 
@@ -60,38 +64,42 @@
                 </div>
 
                 {{-- Back --}}
-                <div class="card-back backface-hidden absolute inset-0 bg-navy-deep rounded-xl shadow-xl rotate-y-180 p-stack-lg flex flex-col text-white">
-                    <div class="flex justify-between items-start mb-6">
-                        <h3 class="font-headline text-xl">Jadwal Kelas</h3>
-                        <span class="material-symbols-outlined text-math-teal">event_note</span>
-                    </div>
-                    <div class="space-y-4 flex-1">
-                        <div class="space-y-1">
-                            <p class="font-label text-xs text-white/60 uppercase">Kelas Diampu</p>
-                            @forelse ($teacher->classes as $class)
-                                <p class="text-sm">{{ $class->name }}
-                                    @if($class->pivot->day)
-                                        — {{ $class->pivot->day }} {{ $class->pivot->start_time }}-{{ $class->pivot->end_time }}
-                                    @endif
-                                </p>
-                            @empty
-                                <p class="text-sm text-white/60">Belum ada jadwal.</p>
-                            @endforelse
-                        </div>
-                        @if ($teacher->description)
-                        <div class="pt-4 mt-auto">
-                            <div class="flex items-center gap-3 p-3 bg-white/10 rounded-lg">
-                                <span class="material-symbols-outlined text-math-teal">info</span>
-                                <p class="text-sm">{{ $teacher->description }}</p>
-                            </div>
-                        </div>
-                        @endif
-                        <div class="pt-2 flex items-center gap-2 text-math-teal text-sm font-bold">
-                            <span class="material-symbols-outlined text-[18px]">chat</span>
-                            Klik untuk hubungi via WhatsApp
-                        </div>
-                    </div>
+<div class="card-back backface-hidden absolute inset-0 bg-navy-deep rounded-xl shadow-xl rotate-y-180 p-5 flex flex-col text-white overflow-hidden">
+    <div class="flex justify-between items-start mb-3 shrink-0">
+        <h3 class="font-headline text-lg">Jadwal Kelas</h3>
+        <span class="material-symbols-outlined text-math-teal">event_note</span>
+    </div>
+
+    <div class="flex-1 min-h-0 flex flex-col">
+        <p class="font-label text-[10px] text-white/60 uppercase mb-2 shrink-0">Kelas Diampu</p>
+
+        <div class="flex-1 min-h-0 overflow-y-auto pr-1 space-y-1.5 custom-scrollbar-dark">
+            @forelse ($teacher->classes as $class)
+                <div class="bg-white/5 rounded-md px-2.5 py-1.5">
+                    <p class="text-xs font-bold leading-tight">{{ $class->name }}</p>
+                    @if($class->pivot->day)
+                        <p class="text-[11px] text-white/70 leading-tight">
+                            {{ $class->pivot->day }} &middot; {{ substr($class->pivot->start_time,0,5) }}-{{ substr($class->pivot->end_time,0,5) }}
+                        </p>
+                    @endif
                 </div>
+            @empty
+                <p class="text-xs text-white/60">Belum ada jadwal.</p>
+            @endforelse
+        </div>
+
+        @if ($teacher->description)
+        <div class="mt-2 pt-2 border-t border-white/10 shrink-0">
+            <p class="text-[11px] text-white/70 line-clamp-2">{{ $teacher->description }}</p>
+        </div>
+        @endif
+
+        <div class="mt-2 pt-2 border-t border-white/10 flex items-center gap-1.5 text-math-teal text-xs font-bold shrink-0">
+            <span class="material-symbols-outlined text-[16px]">chat</span>
+            Klik untuk hubungi via WhatsApp
+        </div>
+    </div>
+</div>
 
             </div>
         </a>

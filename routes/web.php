@@ -31,6 +31,8 @@ use App\Http\Controllers\Admin\AdminStudentController;
 use App\Http\Controllers\Admin\AdminClassController;
 use App\Http\Controllers\Admin\AdminLetterheadController;
 use App\Http\Controllers\Guru\GuruModuleGeneratorController;
+use App\Http\Controllers\Guru\GuruGradeController;
+use App\Http\Controllers\Public\PublicGradeController;
 
 // ================= BERANDA =================
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -78,6 +80,14 @@ Route::get('/latihan/{quizSession}', [LatihanController::class, 'show'])->name('
 Route::post('/latihan/{quizSession}/selesai', [LatihanController::class, 'finish'])->name('latihan.finish');
 Route::get('/leaderboard', [LatihanController::class, 'leaderboard'])->name('leaderboard.public');
 
+// ================= PUBLIK: Cek Nilai =================
+Route::get('/nilai', [PublicGradeController::class, 'showLogin'])->name('nilai.login');
+Route::post('/nilai/login', [PublicGradeController::class, 'login'])->name('nilai.login.submit');
+Route::get('/nilai/lihat', [PublicGradeController::class, 'show'])->name('nilai.show');
+Route::post('/nilai/logout', [PublicGradeController::class, 'logout'])->name('nilai.logout');
+Route::get('/nilai/ganti-password', [PublicGradeController::class, 'showChangePassword'])->name('nilai.password.edit');
+Route::post('/nilai/ganti-password', [PublicGradeController::class, 'updatePassword'])->name('nilai.password.update');
+
 // ================= GURU =================
 Route::prefix('guru')->name('guru.')->group(function () {
     Route::get('/login', [GuruAuthController::class, 'showLoginForm'])->name('login');
@@ -109,6 +119,13 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::post('/modul-ajar/{aiGeneratedModule}/generate-step', [GuruModuleGeneratorController::class, 'generateStep'])->name('modul-ajar.generate-step');
         Route::get('/modul-ajar/{aiGeneratedModule}/cetak', [GuruModuleGeneratorController::class, 'printPdf'])->name('modul-ajar.print');
         Route::delete('/modul-ajar/{aiGeneratedModule}', [GuruModuleGeneratorController::class, 'destroy'])->name('modul-ajar.destroy');
+
+        Route::get('/nilai', [GuruGradeController::class, 'index'])->name('nilai.index');
+        Route::get('/nilai/kelola', [GuruGradeController::class, 'manage'])->name('nilai.manage');
+        Route::post('/nilai/komponen', [GuruGradeController::class, 'storeComponent'])->name('nilai.component.store');
+        Route::delete('/nilai/komponen/{assessmentComponent}', [GuruGradeController::class, 'destroyComponent'])->name('nilai.component.destroy');
+        Route::post('/nilai/simpan', [GuruGradeController::class, 'saveScores'])->name('nilai.save');
+        Route::get('/nilai/export', [GuruGradeController::class, 'export'])->name('nilai.export');
     });
 });
 
@@ -128,7 +145,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/siswa-import/template', [AdminStudentController::class, 'downloadTemplate'])->name('siswa.import.template');
         Route::post('/siswa-import', [AdminStudentController::class, 'import'])->name('siswa.import');
 
-        Route::resource('kelas', AdminClassController::class)->except(['show']);
+        Route::resource('kelas', AdminClassController::class)->except(['show'])->parameters(['kelas' => 'kelas']);
 
         Route::resource('materi', AdminMaterialController::class)->except(['show']);
 

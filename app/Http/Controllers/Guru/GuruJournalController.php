@@ -29,7 +29,7 @@ class GuruJournalController extends Controller
         return $map[now()->timezone('Asia/Jakarta')->format('l')];
     }
 
-   protected function topicsForClass(SchoolClass $schoolClass)
+    protected function topicsForClass(SchoolClass $schoolClass)
 {
     $jenjangCode = $this->resolveJenjangCode($schoolClass);
 
@@ -40,84 +40,91 @@ class GuruJournalController extends Controller
 }
 
 /**
- * Kelas X selalu Fase E.
- * Kelas XI/XII: class_type = 'reguler' -> Fase F, class_type = 'pilihan' -> Fase F+.
+ * Kode jenjang untuk MaterialTopic dibentuk dari jenjang + fase kelas,
+ * sesuai konfigurasi yang diatur Admin di Data Kelas (mis. "XI" + "F+" = "XI-F+").
  */
 protected function resolveJenjangCode(SchoolClass $schoolClass): string
 {
-    $jenjang = $schoolClass->jenjang;
+    $fase = $schoolClass->fase ?: ($schoolClass->jenjang === 'X' ? 'E' : 'F');
 
-    if ($jenjang === 'X') {
-        return 'X-E';
-    }
-
-    return $schoolClass->class_type === 'pilihan' ? "{$jenjang}-F+" : "{$jenjang}-F";
+    return "{$schoolClass->jenjang}-{$fase}";
 }
 
     public function index(Request $request)
-    {
-        $teacherId = Auth::guard('guru')->id();
-        $today = now()->timezone('Asia/Jakarta')->toDateString();
-        $todayDay = $this->todayDayName();
+{
+    $teacherId = Auth::guard('guru')->id();
+    $selectedDate = $request->get('date', now()->timezone('Asia/Jakarta')->toDateString());
+    $selectedDayName = $this->dayNameFromDate($selectedDate);
 
-        $todaySchedules = TeacherClass::with('schoolClass')
-            ->where('teacher_id', $teacherId)
-            ->where('day', $todayDay)
-            ->orderBy('start_time')
-            ->get();
+    $schedulesForDate = TeacherClass::with('schoolClass')
+        ->where('teacher_id', $teacherId)
+        ->where('day', $selectedDayName)
+        ->orderBy('start_time')
+        ->get();
 
-        $filledClassIds = TeachingJournal::where('teacher_id', $teacherId)
-            ->where('journal_date', $today)
-            ->pluck('class_id')
-            ->toArray();
+    $filledClassIds = TeachingJournal::where('teacher_id', $teacherId)
+        ->where('journal_date', $selectedDate)
+        ->pluck('class_id')
+        ->toArray();
 
-        $filterClass = $request->get('class_id');
-        $filterMonth = $request->get('month', now()->format('Y-m'));
+    $filterClass = $request->get('class_id');
+    $filterMonth = $request->get('month', now()->format('Y-m'));
 
-        $journals = TeachingJournal::with('schoolClass')
-            ->where('teacher_id', $teacherId)
-            ->when($filterClass, fn($q) => $q->where('class_id', $filterClass))
-            ->whereRaw("DATE_FORMAT(journal_date, '%Y-%m') = ?", [$filterMonth])
-            ->orderByDesc('journal_date')
-            ->get();
+    $journals = TeachingJournal::with('schoolClass')
+        ->where('teacher_id', $teacherId)
+        ->when($filterClass, fn($q) => $q->where('class_id', $filterClass))
+        ->whereRaw("DATE_FORMAT(journal_date, '%Y-%m') = ?", [$filterMonth])
+        ->orderByDesc('journal_date')
+        ->get();
 
-        $myClasses = SchoolClass::whereHas('teachers', fn($q) => $q->where('teacher_id', $teacherId))
-            ->orderBy('name')->get();
+    $myClasses = SchoolClass::whereHas('teachers', fn($q) => $q->where('teacher_id', $teacherId))
+        ->orderBy('name')->get();
 
-        return view('guru.jurnal.index', [
-            'todaySchedules' => $todaySchedules,
-            'filledClassIds' => $filledClassIds,
-            'todayDate' => $today,
-            'journals' => $journals,
-            'myClasses' => $myClasses,
-            'filterClass' => $filterClass,
-            'filterMonth' => $filterMonth,
-        ] + $this->nav());
-    }
+    return view('guru.jurnal.index', [
+        'schedulesForDate' => $schedulesForDate,
+        'selectedDate' => $selectedDate,
+        'selectedDayName' => $selectedDayName,
+        'filledClassIds' => $filledClassIds,
+        'journals' => $journals,
+        'myClasses' => $myClasses,
+        'filterClass' => $filterClass,
+        'filterMonth' => $filterMonth,
+    ] + $this->nav());
+}
+
+protected function dayNameFromDate(string $date): string
+{
+    $map = ['Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'];
+    $englishDay = \Carbon\Carbon::parse($date)->format('l');
+    return $map[$englishDay];
+}
 
     public function create(Request $request, TeacherClass $teacherClass)
     {
-        abort_if($teacherClass->teacher_id !== Auth::guard('guru')->id(), 403);
+    abort_if($teacherClass->teacher_id !== Auth::guard('guru')->id(), 403);
 
-        $date = $request->get('date', now()->timezone('Asia/Jakarta')->toDateString());
+    $date = $request->query('date');
+    if (!$date) {
+        $date = now()->timezone('Asia/Jakarta')->toDateString();
+    }
 
-        $existing = TeachingJournal::where('class_id', $teacherClass->class_id)
-            ->where('journal_date', $date)
-            ->first();
+    $existing = TeachingJournal::where('class_id', $teacherClass->class_id)
+        ->where('journal_date', $date)
+        ->first();
 
-        if ($existing) {
-            return redirect()->route('guru.jurnal.edit', $existing);
-        }
+    if ($existing) {
+        return redirect()->route('guru.jurnal.edit', $existing);
+    }
 
-        $students = $teacherClass->schoolClass->students()->orderBy('name')->get();
-        $topics = $this->topicsForClass($teacherClass->schoolClass);
+    $students = $teacherClass->schoolClass->students()->orderBy('name')->get();
+    $topics = $this->topicsForClass($teacherClass->schoolClass);
 
-        return view('guru.jurnal.create', [
-            'teacherClass' => $teacherClass,
-            'date' => $date,
-            'students' => $students,
-            'topics' => $topics,
-        ] + $this->nav());
+    return view('guru.jurnal.create', [
+        'teacherClass' => $teacherClass,
+        'date' => $date,
+        'students' => $students,
+        'topics' => $topics,
+    ] + $this->nav());
     }
 
     public function store(Request $request, TeacherClass $teacherClass)

@@ -34,13 +34,14 @@
     </div>
 
     <div>
-        <label class="text-sm font-medium">Tipe Kelas</label>
-        <select name="class_type" class="mt-1 w-full rounded-md border-outline-variant">
-            <option value="reguler" {{ old('class_type', $kelas->class_type) == 'reguler' ? 'selected' : '' }}>Reguler (kelas induk/homeroom)</option>
-            <option value="pilihan" {{ old('class_type', $kelas->class_type) == 'pilihan' ? 'selected' : '' }}>Pilihan (lintas minat/kelas tambahan)</option>
+        <label class="text-sm font-medium">Fase</label>
+        <select name="fase" class="mt-1 w-full rounded-md border-outline-variant">
+            <option value="E" {{ old('fase', $kelas->fase) == 'E' ? 'selected' : '' }}>Fase E</option>
+            <option value="F" {{ old('fase', $kelas->fase) == 'F' ? 'selected' : '' }}>Fase F</option>
+            <option value="F+" {{ old('fase', $kelas->fase) == 'F+' ? 'selected' : '' }}>Fase F+</option>
         </select>
         <p class="text-xs text-on-surface-variant mt-1">
-            Kelas X selalu materi Fase E. Kelas XI/XII <strong>Reguler</strong> memakai materi Fase F, kelas XI/XII <strong>Pilihan</strong> memakai materi Fase F+.
+            Fase menentukan materi/topik kurikulum yang otomatis muncul saat guru mengisi Jurnal Mengajar untuk kelas ini.
         </p>
     </div>
 

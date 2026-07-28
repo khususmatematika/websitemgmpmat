@@ -7,14 +7,14 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('classes', function (Blueprint $table) {
-            $table->enum('class_type', ['reguler', 'pilihan'])->default('reguler')->after('jenjang');
+            $table->string('fase', 5)->nullable()->after('jenjang');
         });
     }
 
     public function down(): void
     {
         Schema::table('classes', function (Blueprint $table) {
-            $table->dropColumn('class_type');
+            $table->dropColumn('fase');
         });
     }
 };

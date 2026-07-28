@@ -36,20 +36,18 @@ class GuruBankSoalController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'jenjang' => 'required|in:X-E,XI-F,XII-F,XI-F+,XII-F+',
-            'topic' => 'required|string',
-            'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240', // 10MB
-        ]);
+{
+    $data = $request->validate([
+        'title' => 'required|string|max:255',
+        'jenjang' => 'required|in:X-E,XI-F,XII-F,XI-F+,XII-F+',
+        'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
+    ]);
 
         $path = $request->file('file')->store('question-bank', 'public');
 
         QuestionBank::create([
             'type' => 'file',
             'jenjang' => $data['jenjang'],
-            'topic' => $data['topic'],
             'title' => $data['title'],
             'file_path' => $path,
             'uploaded_by_type' => 'teacher',

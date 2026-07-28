@@ -2,8 +2,15 @@
 @section('title', 'Isi Jurnal Mengajar')
 
 @section('dashboard-content')
+<a href="{{ route('guru.jurnal.index', ['date' => $date]) }}" class="inline-flex items-center gap-1 text-sm font-bold text-on-surface-variant hover:text-math-teal mb-2">
+    <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+    Kembali ke Jurnal Mengajar
+</a>
+
 <h1 class="font-headline text-2xl font-bold text-navy-deep mb-1">Isi Jurnal Mengajar</h1>
-<p class="text-on-surface-variant mb-6">{{ $teacherClass->schoolClass->name }} &middot; {{ \Carbon\Carbon::parse($date)->translatedFormat('l, d F Y') }}</p>
+<p class="text-on-surface-variant mb-6">
+    {{ $teacherClass->schoolClass->name }} &middot; {{ \Carbon\Carbon::parse($date)->translatedFormat('l, d F Y') }}
+</p>
 
 @if ($errors->any())
 <div class="mb-4 p-3 bg-error-container text-status-error rounded-md text-sm">
@@ -11,7 +18,7 @@
 </div>
 @endif
 
-<form method="POST" action="{{ route('guru.jurnal.store', $teacherClass) }}" class="space-y-6">
+<form method="POST" action="{{ route('guru.jurnal.store', $teacherClass->id) }}" class="space-y-6">
     @csrf
     <input type="hidden" name="journal_date" value="{{ $date }}">
 
@@ -25,7 +32,7 @@
                 @endforeach
             </select>
             @if ($topics->isEmpty())
-                <p class="text-xs text-status-warning mt-1">Belum ada topik kurikulum untuk jenjang kelas ini. Tambahkan lewat menu Admin → Topik Kurikulum.</p>
+                <p class="text-xs text-status-warning mt-1">Belum ada topik kurikulum untuk jenjang/fase kelas ini. Tambahkan lewat menu Admin → Topik Kurikulum.</p>
             @endif
         </div>
         <div>

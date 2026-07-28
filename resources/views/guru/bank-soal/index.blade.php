@@ -15,7 +15,7 @@
     @forelse ($files as $f)
     <div class="bg-white p-5 rounded-xl shadow-sm border border-outline-variant/30">
         <h3 class="font-bold text-navy-deep">{{ $f->title }}</h3>
-        <p class="text-xs text-on-surface-variant mb-3">{{ $f->jenjang }} &middot; {{ $f->topic }}</p>
+        <p class="text-xs text-on-surface-variant mb-3">{{ $f->jenjang }}</p>
         <form action="{{ route('guru.bank-soal.destroy', $f) }}" method="POST" onsubmit="return confirm('Hapus soal ini?')">
             @csrf @method('DELETE')
             <button class="text-status-error text-sm font-bold">Hapus</button>

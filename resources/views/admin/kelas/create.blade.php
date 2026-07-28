@@ -19,26 +19,36 @@
     @csrf
     <div>
         <label class="text-sm font-medium">Nama Kelas</label>
-        <input name="name" required placeholder="mis. XI-A atau XI Lintas Minat" value="{{ old('name') }}" class="mt-1 w-full rounded-md border-outline-variant">
+        <input name="name" required placeholder="mis. XI-A atau XI Mat Lanjut 3" value="{{ old('name') }}" class="mt-1 w-full rounded-md border-outline-variant">
     </div>
     <div>
         <label class="text-sm font-medium">Jenjang</label>
-        <select name="jenjang" class="mt-1 w-full rounded-md border-outline-variant">
+        <select name="jenjang" id="jenjang-select" class="mt-1 w-full rounded-md border-outline-variant">
             <option value="X">Kelas X</option>
             <option value="XI">Kelas XI</option>
             <option value="XII">Kelas XII</option>
         </select>
     </div>
     <div>
-        <label class="text-sm font-medium">Tipe Kelas</label>
-        <select name="class_type" class="mt-1 w-full rounded-md border-outline-variant">
-            <option value="reguler">Reguler (kelas induk/homeroom)</option>
-            <option value="pilihan">Pilihan (lintas minat/kelas tambahan)</option>
+        <label class="text-sm font-medium">Fase</label>
+        <select name="fase" id="fase-select" class="mt-1 w-full rounded-md border-outline-variant">
+            <option value="E">Fase E</option>
+            <option value="F">Fase F</option>
+            <option value="F+">Fase F+</option>
         </select>
         <p class="text-xs text-on-surface-variant mt-1">
-            Kelas X selalu materi Fase E. Kelas XI/XII <strong>Reguler</strong> memakai materi Fase F, kelas XI/XII <strong>Pilihan</strong> memakai materi Fase F+.
+            Fase menentukan materi/topik kurikulum yang otomatis muncul saat guru mengisi Jurnal Mengajar untuk kelas ini.
         </p>
     </div>
     <button class="bg-math-teal text-white px-6 py-3 rounded-md font-bold">Simpan</button>
 </form>
+
+<script>
+// Bantu admin: auto-suggest Fase berdasarkan Jenjang yang dipilih (tetap bisa diubah manual)
+document.getElementById('jenjang-select').addEventListener('change', function () {
+    const faseSelect = document.getElementById('fase-select');
+    if (this.value === 'X') faseSelect.value = 'E';
+    else faseSelect.value = 'F';
+});
+</script>
 @endsection

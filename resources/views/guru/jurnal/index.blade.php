@@ -9,13 +9,24 @@
 @endif
 
 <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6">
-    <h2 class="font-headline text-lg font-bold text-navy-deep mb-1">Jadwal Hari Ini</h2>
-    <p class="text-xs text-on-surface-variant mb-4">{{ \Carbon\Carbon::parse($todayDate)->translatedFormat('l, d F Y') }}</p>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+            <h2 class="font-headline text-lg font-bold text-navy-deep">Jadwal Mengajar</h2>
+            <p class="text-xs text-on-surface-variant">{{ \Carbon\Carbon::parse($selectedDate)->translatedFormat('l, d F Y') }}</p>
+        </div>
+
+        <form method="GET" class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-math-teal text-[20px]">event</span>
+            <input type="date" name="date" value="{{ $selectedDate }}"
+                   onchange="this.form.submit()"
+                   class="rounded-md border-outline-variant text-sm">
+        </form>
+    </div>
 
     <div class="space-y-3">
-        @forelse ($todaySchedules as $sch)
+        @forelse ($schedulesForDate as $sch)
         @php $isFilled = in_array($sch->class_id, $filledClassIds); @endphp
-        <a href="{{ route('guru.jurnal.create', $sch) }}"
+        <a href="{{ route('guru.jurnal.create', ['teacherClass' => $sch->id, 'date' => $selectedDate]) }}"
            class="flex items-center justify-between p-4 rounded-lg border transition-all
                   {{ $isFilled ? 'border-status-success/40 bg-status-success/5' : 'border-outline-variant hover:border-math-teal' }}">
             <div class="flex items-center gap-4">
@@ -24,7 +35,7 @@
                 </div>
                 <div>
                     <p class="font-bold text-navy-deep text-sm">{{ $sch->schoolClass->name }}</p>
-                    <p class="text-xs text-on-surface-variant">{{ $sch->start_time }} - {{ $sch->end_time }}</p>
+                    <p class="text-xs text-on-surface-variant">{{ substr($sch->start_time,0,5) }} - {{ substr($sch->end_time,0,5) }}</p>
                 </div>
             </div>
             @if ($isFilled)
@@ -37,31 +48,34 @@
             @endif
         </a>
         @empty
-        <p class="text-on-surface-variant text-center py-8 text-sm">Tidak ada jadwal mengajar hari ini.</p>
+        <p class="text-on-surface-variant text-center py-8 text-sm">
+            Tidak ada jadwal mengajar pada hari {{ $selectedDayName }} ({{ \Carbon\Carbon::parse($selectedDate)->translatedFormat('d F Y') }}).
+        </p>
         @endforelse
     </div>
 </div>
 
 <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6">
-    <div class="flex items-center justify-between mb-4">
-    <h2 class="font-headline text-lg font-bold text-navy-deep">Rekap Jurnal</h2>
-    <div class="flex gap-2">
-        @if ($filterClass)
-        <a href="{{ route('guru.jurnal.print', ['class_id' => $filterClass, 'month' => $filterMonth]) }}" target="_blank"
-           class="flex items-center gap-2 bg-navy-deep text-white px-4 py-2 rounded-md font-bold text-xs hover:bg-math-teal transition-colors">
-            <span class="material-symbols-outlined text-[16px]">print</span>
-            Cetak Kelas Ini
-        </a>
-        @endif
-        <a href="{{ route('guru.jurnal.print', ['month' => $filterMonth]) }}" target="_blank"
-           class="flex items-center gap-2 bg-math-teal text-white px-4 py-2 rounded-md font-bold text-xs hover:brightness-110 transition-colors">
-            <span class="material-symbols-outlined text-[16px]">library_books</span>
-            Cetak Semua Kelas
-        </a>
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
+        <h2 class="font-headline text-lg font-bold text-navy-deep">Rekap Jurnal</h2>
+        <div class="flex gap-2">
+            @if ($filterClass)
+            <a href="{{ route('guru.jurnal.print', ['class_id' => $filterClass, 'month' => $filterMonth]) }}" target="_blank"
+               class="flex items-center gap-2 bg-navy-deep text-white px-4 py-2 rounded-md font-bold text-xs hover:bg-math-teal transition-colors whitespace-nowrap">
+                <span class="material-symbols-outlined text-[16px]">print</span>
+                Cetak Kelas Ini
+            </a>
+            @endif
+            <a href="{{ route('guru.jurnal.print', ['month' => $filterMonth]) }}" target="_blank"
+               class="flex items-center gap-2 bg-math-teal text-white px-4 py-2 rounded-md font-bold text-xs hover:brightness-110 transition-colors whitespace-nowrap">
+                <span class="material-symbols-outlined text-[16px]">library_books</span>
+                Cetak Semua Kelas
+            </a>
+        </div>
     </div>
-</div>
 
     <form method="GET" class="flex flex-col md:flex-row gap-3 mb-4">
+        <input type="hidden" name="date" value="{{ $selectedDate }}">
         <select name="class_id" onchange="this.form.submit()" class="rounded-md border-outline-variant text-sm flex-1">
             <option value="">Semua Kelas</option>
             @foreach ($myClasses as $c)
@@ -71,7 +85,6 @@
         <input type="month" name="month" value="{{ $filterMonth }}" onchange="this.form.submit()"
                class="rounded-md border-outline-variant text-sm">
     </form>
-
 
     <div class="overflow-x-auto">
         <table class="w-full text-sm">

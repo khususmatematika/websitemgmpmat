@@ -58,9 +58,9 @@
         @foreach ($files as $f)
         <div class="bg-white p-5 rounded-xl shadow-sm border border-outline-variant/30 flex items-center justify-between">
             <div>
-                <p class="font-bold text-navy-deep">{{ $f->title }}</p>
-                <p class="text-xs text-on-surface-variant">{{ $f->topic }}</p>
-            </div>
+    <p class="font-bold text-navy-deep">{{ $f->title }}</p>
+    <p class="text-xs text-on-surface-variant">{{ $f->jenjang }}</p>
+</div>
             <a href="{{ asset('storage/'.$f->file_path) }}" target="_blank" class="text-math-teal">
                 <span class="material-symbols-outlined">download</span>
             </a>

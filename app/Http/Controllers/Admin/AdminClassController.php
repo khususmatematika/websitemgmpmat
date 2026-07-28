@@ -32,7 +32,7 @@ class AdminClassController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100|unique:classes,name',
             'jenjang' => 'required|in:X,XI,XII',
-            'class_type' => 'required|in:reguler,pilihan',
+            'fase' => 'required|in:E,F,F+',
         ]);
 
         SchoolClass::create($data);
@@ -50,7 +50,7 @@ class AdminClassController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100|unique:classes,name,' . $kelas->id,
             'jenjang' => 'required|in:X,XI,XII',
-            'class_type' => 'required|in:reguler,pilihan',
+            'fase' => 'required|in:E,F,F+',
         ]);
 
         $kelas->update($data);

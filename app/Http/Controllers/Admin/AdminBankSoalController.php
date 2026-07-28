@@ -35,7 +35,6 @@ class AdminBankSoalController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'jenjang' => 'required|in:X-E,XI-F,XII-F,XI-F+,XII-F+',
-            'topic' => 'required|string',
             'file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:10240',
         ]);
 
