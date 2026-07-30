@@ -33,6 +33,41 @@
         </div>
     </div>
 
+    @if (count($attendanceSummary) > 0)
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+    @foreach ($attendanceSummary as $att)
+    <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-5">
+        <div class="flex items-center justify-between mb-3">
+            <p class="font-bold text-navy-deep text-sm">{{ $att['class'] }}</p>
+            @if ($att['percentage'] !== null)
+            <span class="text-lg font-bold {{ $att['percentage'] >= 90 ? 'text-status-success' : ($att['percentage'] >= 75 ? 'text-status-warning' : 'text-status-error') }}">
+                {{ $att['percentage'] }}%
+            </span>
+            @endif
+        </div>
+        <div class="grid grid-cols-4 gap-2 text-center">
+            <div>
+                <p class="text-sm font-bold text-status-success">{{ $att['hadir'] }}</p>
+                <p class="text-[10px] text-on-surface-variant">Hadir</p>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-status-warning">{{ $att['sakit'] }}</p>
+                <p class="text-[10px] text-on-surface-variant">Sakit</p>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-blue-600">{{ $att['izin'] }}</p>
+                <p class="text-[10px] text-on-surface-variant">Izin</p>
+            </div>
+            <div>
+                <p class="text-sm font-bold text-status-error">{{ $att['alpa'] }}</p>
+                <p class="text-[10px] text-on-surface-variant">Alpa</p>
+            </div>
+        </div>
+    </div>
+    @endforeach
+</div>
+@endif
+
     @if (session('status'))
     <div class="mb-6 p-3 bg-status-success/10 text-status-success rounded-md text-sm">{{ session('status') }}</div>
     @endif
@@ -100,6 +135,15 @@
                         </p>
                     </div>
                     @endif
+
+                    @if ($r['is_class_table_published'])
+                    <a href="{{ route('nilai.class-table', [$r['class_id'], $r['topic_id']]) }}"
+                    class="mt-3 flex items-center justify-center gap-2 bg-math-teal/10 text-math-teal py-2 rounded-md text-sm font-bold hover:bg-math-teal/20 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">groups</span>
+                        Lihat Nilai Seluruh Kelas
+                    </a>
+                    @endif
+
                 </div>
                 @endif
             </div>

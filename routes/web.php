@@ -88,6 +88,8 @@ Route::post('/nilai/logout', [PublicGradeController::class, 'logout'])->name('ni
 Route::get('/nilai/ganti-password', [PublicGradeController::class, 'showChangePassword'])->name('nilai.password.edit');
 Route::post('/nilai/ganti-password', [PublicGradeController::class, 'updatePassword'])->name('nilai.password.update');
 
+Route::get('/nilai/kelas/{classId}/{topicId}', [PublicGradeController::class, 'showClassTable'])->name('nilai.class-table');
+
 // ================= GURU =================
 Route::prefix('guru')->name('guru.')->group(function () {
     Route::get('/login', [GuruAuthController::class, 'showLoginForm'])->name('login');
@@ -126,6 +128,8 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::delete('/nilai/komponen/{assessmentComponent}', [GuruGradeController::class, 'destroyComponent'])->name('nilai.component.destroy');
         Route::post('/nilai/simpan', [GuruGradeController::class, 'saveScores'])->name('nilai.save');
         Route::get('/nilai/export', [GuruGradeController::class, 'export'])->name('nilai.export');
+
+        Route::post('/nilai/publish', [GuruGradeController::class, 'togglePublish'])->name('nilai.publish.toggle');
     });
 });
 

@@ -1,10 +1,6 @@
 @extends('layouts.dashboard')
 @section('title', 'Dashboard Guru')
 
-@push('styles')
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-@endpush
-
 @section('dashboard-content')
 <h1 class="font-headline text-2xl font-bold text-navy-deep">Selamat datang, {{ auth('guru')->user()->name }}</h1>
 <p class="text-on-surface-variant">Ringkasan kelas dan siswa yang kamu ajar.</p>
@@ -37,54 +33,45 @@
     <p class="text-xs text-on-surface-variant mb-6">Bulan {{ $currentMonthLabel }}</p>
 
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-        @foreach ($attendanceByClass as $i => $att)
+        @foreach ($attendanceByClass as $att)
+        @php
+            $total = $att['hadir'] + $att['sakit'] + $att['izin'] + $att['alpa'];
+            $pct = $att['persentase'] ?? 0;
+            $radius = 45;
+            $circumference = 2 * M_PI * $radius;
+            $offset = $circumference * (1 - $pct / 100);
+        @endphp
         <div class="text-center">
             <div class="relative w-28 h-28 mx-auto">
-                <canvas id="chart-{{ $i }}"></canvas>
+                <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
+                    <circle cx="50" cy="50" r="{{ $radius }}" fill="none" stroke="#e3e2e6" stroke-width="10"></circle>
+                    @if ($total > 0)
+                    <circle cx="50" cy="50" r="{{ $radius }}" fill="none"
+                            stroke="{{ $pct >= 90 ? '#2D6A4F' : ($pct >= 75 ? '#FFB703' : '#D00000') }}"
+                            stroke-width="10"
+                            stroke-dasharray="{{ $circumference }}"
+                            stroke-dashoffset="{{ $offset }}"
+                            stroke-linecap="round"></circle>
+                    @endif
+                </svg>
                 <div class="absolute inset-0 flex items-center justify-center">
                     <span class="text-lg font-bold text-navy-deep">
-                        {{ $att['persentase'] !== null ? $att['persentase'] . '%' : '-' }}
+                        {{ $total > 0 ? $pct . '%' : '-' }}
                     </span>
                 </div>
             </div>
             <p class="text-sm font-bold text-navy-deep mt-2">{{ $att['name'] }}</p>
-            <p class="text-[11px] text-on-surface-variant">{{ $att['hadir'] + $att['sakit'] + $att['izin'] + $att['alpa'] }} data tercatat</p>
+            <p class="text-[11px] text-on-surface-variant">{{ $total }} data tercatat</p>
         </div>
         @endforeach
     </div>
+
+    <div class="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-outline-variant text-xs text-on-surface-variant">
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-status-success inline-block"></span> ≥90% Baik</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-status-warning inline-block"></span> 75-89% Cukup</span>
+        <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-status-error inline-block"></span> &lt;75% Perlu Perhatian</span>
+    </div>
 </div>
-
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const data = @json($attendanceByClass);
-
-    data.forEach((att, i) => {
-        const ctx = document.getElementById('chart-' + i);
-        if (!ctx) return;
-
-        const total = att.hadir + att.sakit + att.izin + att.alpa;
-        const values = total > 0 ? [att.hadir, att.sakit, att.izin, att.alpa] : [1, 0, 0, 0];
-
-        new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Hadir', 'Sakit', 'Izin', 'Alpa'],
-                datasets: [{
-                    data: values,
-                    backgroundColor: total > 0
-                        ? ['#20B2AA', '#FFB703', '#3B82F6', '#D00000']
-                        : ['#e3e2e6'],
-                    borderWidth: 0,
-                }]
-            },
-            options: {
-                cutout: '70%',
-                plugins: { legend: { display: false }, tooltip: { enabled: total > 0 } },
-            }
-        });
-    });
-});
-</script>
 @endif
 
 @if ($classes->count() > 0)

@@ -35,7 +35,6 @@ class GuruDigitalLessonController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'jenjang' => 'required|in:X-E,XI-F,XII-F,XI-F+,XII-F+',
-            'topic' => 'required|string',
             'embed_url' => 'required|url',
         ]);
 

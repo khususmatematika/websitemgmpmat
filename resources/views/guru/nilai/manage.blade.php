@@ -12,6 +12,17 @@
         <h1 class="font-headline text-2xl font-bold text-navy-deep">{{ $topic->title }}</h1>
         <p class="text-on-surface-variant text-sm">{{ $class->name }}</p>
     </div>
+    <form method="POST" action="{{ route('guru.nilai.publish.toggle') }}">
+    @csrf
+    <input type="hidden" name="class_id" value="{{ $class->id }}">
+    <input type="hidden" name="material_topic_id" value="{{ $topic->id }}">
+    <button type="submit"
+            class="flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm whitespace-nowrap
+                   {{ $isPublished ? 'bg-status-success text-white' : 'bg-surface-container text-on-surface-variant' }}">
+        <span class="material-symbols-outlined text-[18px]">{{ $isPublished ? 'visibility' : 'visibility_off' }}</span>
+        {{ $isPublished ? 'Nilai Aktif (Terlihat Siswa)' : 'Nilai Nonaktif' }}
+    </button>
+</form>
     <a href="{{ route('guru.nilai.export', ['class_id' => $class->id, 'material_topic_id' => $topic->id]) }}"
        class="flex items-center gap-2 bg-navy-deep text-white px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-colors whitespace-nowrap">
         <span class="material-symbols-outlined text-[18px]">download</span>

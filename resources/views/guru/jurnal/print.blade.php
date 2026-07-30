@@ -12,10 +12,6 @@
         .kop-logo { width: 75px; }
         .kop-logo img { width: 70px; }
         .kop-text { text-align: center; }
-        .kop-provinsi { font-size: 13px; font-weight: bold; margin: 0; letter-spacing: 0.3px; }
-        .kop-dinas { font-size: 13px; font-weight: bold; margin: 0; letter-spacing: 0.3px; }
-        .kop-sekolah { font-size: 20px; font-weight: bold; margin: 2px 0; letter-spacing: 0.5px; }
-        .kop-alamat { font-size: 10px; margin: 1px 0; }
 
         h2.title { text-align: center; font-size: 14px; margin: 16px 0 4px 0; text-decoration: underline; }
         p.subtitle { text-align: center; margin: 0 0 16px 0; font-size: 11px; }
@@ -27,8 +23,20 @@
         .class-section { margin-bottom: 24px; page-break-inside: avoid; }
         .class-title { font-size: 13px; font-weight: bold; color: #0F2544; background: #efedf1; padding: 6px 8px; margin-bottom: 8px; border-left: 4px solid #0F2544; }
 
-        table.journal { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-        table.journal th, table.journal td { border: 1px solid #999; padding: 5px; font-size: 10px; text-align: left; vertical-align: top; }
+        table.journal {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 8px;
+        }
+        table.journal th, table.journal td {
+            border: 1px solid #999;
+            padding: 5px;
+            font-size: 10px;
+            text-align: left;
+            vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
         table.journal th { background-color: #efedf1; text-align: center; }
         table.journal td.center { text-align: center; }
 
@@ -50,12 +58,14 @@
             </td>
             @endif
             <td class="kop-text">
-                <p class="kop-provinsi">PEMERINTAH PROVINSI JAWA TIMUR</p>
-                <p class="kop-dinas">DINAS PENDIDIKAN</p>
-                <p class="kop-sekolah">{{ strtoupper($letterhead->school_name) }}</p>
-                @if ($letterhead->address)
-                <p class="kop-alamat">{{ $letterhead->address }}</p>
-                @endif
+                @for ($i = 1; $i <= 5; $i++)
+                    @php $text = $letterhead->{'line'.$i.'_text'}; @endphp
+                    @if ($text)
+                    <div style="font-size: {{ $letterhead->{'line'.$i.'_size'} }}px; font-weight: {{ $letterhead->{'line'.$i.'_bold'} ? 'bold' : 'normal' }}; margin: 1px 0;">
+                        {{ $text }}
+                    </div>
+                    @endif
+                @endfor
             </td>
         </tr>
     </table>
@@ -88,21 +98,21 @@
         <table class="journal">
             <thead>
                 <tr>
-                    <th style="width: 30px;">No</th>
-                    <th style="width: 80px;">Tanggal</th>
-                    <th>Materi</th>
-                    <th>Kegiatan</th>
-                    <th style="width: 140px;">Siswa Tidak Hadir</th>
+                    <th style="width: 4%;">No</th>
+                    <th style="width: 11%;">Tanggal</th>
+                    <th style="width: 20%;">Materi</th>
+                    <th style="width: 40%;">Kegiatan</th>
+                    <th style="width: 25%;">Siswa Tidak Hadir</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($group['journals'] as $i => $j)
                 <tr>
-                    <td class="center">{{ $i + 1 }}</td>
-                    <td class="center">{{ $j->journal_date->translatedFormat('d F Y') }}</td>
-                    <td>{{ $j->materi ?? '-' }}</td>
-                    <td>{{ $j->kegiatan ?? '-' }}</td>
-                    <td class="attendance-list">
+                    <td class="center" style="width: 4%;">{{ $i + 1 }}</td>
+                    <td class="center" style="width: 11%;">{{ $j->journal_date->translatedFormat('d F Y') }}</td>
+                    <td style="width: 20%;">{{ $j->materi ?? '-' }}</td>
+                    <td style="width: 40%;">{{ $j->kegiatan ?? '-' }}</td>
+                    <td class="attendance-list" style="width: 25%;">
                         @php
                             $notPresent = $j->attendances->filter(fn($a) => $a->status !== 'Hadir');
                         @endphp

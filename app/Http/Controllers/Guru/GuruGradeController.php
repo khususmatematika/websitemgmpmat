@@ -94,6 +94,8 @@ class GuruGradeController extends Controller
             ->groupBy('assessment_component_id')
             ->map(fn($group) => $group->keyBy('student_id'));
 
+            $isPublished = \App\Models\GradePublication::isPublished($classId, $materialTopicId);
+
         return view('guru.nilai.manage', [
             'class' => $class,
             'topic' => $topic,
@@ -101,6 +103,7 @@ class GuruGradeController extends Controller
             'students' => $class->students,
             'attendancePercent' => $attendancePercent,
             'existingScores' => $existingScores,
+            'isPublished' => $isPublished,
         ] + $this->nav());
     }
 
@@ -247,4 +250,22 @@ class GuruGradeController extends Controller
 
     return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
     }
+
+    public function togglePublish(Request $request)
+{
+    $data = $request->validate([
+        'class_id' => 'required|exists:classes,id',
+        'material_topic_id' => 'required|exists:material_topics,id',
+    ]);
+
+    $pub = \App\Models\GradePublication::firstOrCreate(
+        ['class_id' => $data['class_id'], 'material_topic_id' => $data['material_topic_id']],
+        ['teacher_id' => Auth::guard('guru')->id(), 'is_published' => false]
+    );
+
+    $pub->update(['is_published' => !$pub->is_published]);
+
+    return redirect()->route('guru.nilai.manage', $data)
+        ->with('status', $pub->is_published ? 'Nilai berhasil diaktifkan untuk dilihat siswa.' : 'Nilai disembunyikan dari siswa.');
+}
 }

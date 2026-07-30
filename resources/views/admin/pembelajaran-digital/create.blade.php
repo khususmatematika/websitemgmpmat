@@ -29,14 +29,7 @@
         </select>
     </div>
 
-    <div>
-        <label class="text-sm font-medium">Topik</label>
-        <select name="topic" class="mt-1 w-full rounded-md border-outline-variant">
-            @foreach ($topics as $t)
-                <option value="{{ $t }}" {{ old('topic') == $t ? 'selected' : '' }}>{{ $t }}</option>
-            @endforeach
-        </select>
-    </div>
+    
 
     <div>
         <label class="text-sm font-medium">URL Embed</label>
