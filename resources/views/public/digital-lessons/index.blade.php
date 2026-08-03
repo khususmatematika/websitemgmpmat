@@ -2,20 +2,31 @@
 @section('title', 'Pembelajaran Digital')
 
 @section('content')
-<section class="py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
-    <a href="{{ route('home') }}" class="inline-flex items-center gap-1 text-sm font-bold text-on-surface-variant hover:text-math-teal mb-6">
-        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
-        Kembali ke Beranda
-    </a>
+<section class="relative overflow-hidden">
+    <div class="hero-gradient py-16 px-margin-mobile md:px-margin-desktop relative">
+        <div class="absolute inset-0 math-pattern opacity-10"></div>
+        <div class="relative z-10 max-w-container-max mx-auto">
+            <a href="{{ route('home') }}" class="inline-flex items-center gap-1 text-sm font-bold text-white/70 hover:text-white mb-6">
+                <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+                Kembali ke Beranda
+            </a>
+            <div class="flex items-center gap-3 mb-3">
+                <div class="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center">
+                    <span class="material-symbols-outlined text-math-teal text-2xl">devices</span>
+                </div>
+                <span class="text-math-teal font-label text-xs uppercase tracking-widest">Media Interaktif</span>
+            </div>
+            <h1 class="font-headline text-3xl md:text-4xl font-bold text-white mb-2">Pembelajaran Digital</h1>
+            <p class="text-white/70 max-w-2xl">Video, simulasi, dan media interaktif untuk memperdalam pemahaman konsep matematika.</p>
+        </div>
+    </div>
+</section>
 
-    <span class="text-primary font-label text-xs uppercase tracking-widest mb-2 block">Media Interaktif</span>
-    <h1 class="font-headline text-3xl font-bold text-navy-deep mb-2">Pembelajaran Digital</h1>
-    <p class="text-on-surface-variant mb-8 max-w-2xl">Video, simulasi, dan media interaktif untuk memperdalam pemahaman konsep matematika.</p>
-
-    <div class="flex flex-wrap gap-2 mb-8">
+<section class="py-12 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto -mt-8 relative z-10">
+    <div class="bg-white rounded-xl shadow-md border border-outline-variant/30 p-4 mb-8 flex flex-wrap gap-2">
         @foreach (\App\Support\MathTopics::JENJANG as $key => $label)
         <a href="{{ route('digital-lessons.public', ['jenjang' => $key]) }}"
-           class="px-4 py-2 rounded-full text-sm font-medium transition-all {{ $jenjang == $key ? 'bg-primary text-white shadow-md' : 'bg-white border border-outline-variant text-on-surface-variant hover:border-primary' }}">
+           class="px-4 py-2 rounded-full text-sm font-medium transition-all {{ $jenjang == $key ? 'bg-primary text-white shadow-md' : 'bg-surface-container text-on-surface-variant hover:bg-primary/10 hover:text-primary' }}">
             {{ $label }}
         </a>
         @endforeach
@@ -23,23 +34,22 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         @forelse ($lessons as $l)
-        <div class="group bg-white rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden hover:shadow-lg transition-all">
+        <div class="group bg-white rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
             <div class="aspect-video bg-surface-container relative overflow-hidden">
                 <iframe src="{{ $l->embed_url }}" class="w-full h-full" frameborder="0" allowfullscreen loading="lazy"></iframe>
+                <div class="absolute top-3 right-3 bg-navy-deep/80 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-full flex items-center gap-1">
+                    <span class="material-symbols-outlined text-[12px]">play_circle</span>
+                    Interaktif
+                </div>
             </div>
             <div class="p-5">
-                <div class="flex items-center gap-2 mb-2">
-                    <span class="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <span class="material-symbols-outlined text-primary text-[18px]">devices</span>
-                    </span>
-                    <h3 class="font-bold text-navy-deep group-hover:text-primary transition-colors line-clamp-2">{{ $l->title }}</h3>
-                </div>
+                <h3 class="font-bold text-navy-deep group-hover:text-primary transition-colors line-clamp-2">{{ $l->title }}</h3>
             </div>
         </div>
         @empty
-        <div class="col-span-full text-center py-16 bg-white rounded-xl border border-outline-variant/30">
-            <span class="material-symbols-outlined text-outline-variant text-5xl mb-3">devices_off</span>
-            <p class="text-on-surface-variant">Belum ada media pembelajaran digital untuk jenjang ini.</p>
+        <div class="col-span-full text-center py-20 bg-white rounded-2xl border border-dashed border-outline-variant">
+            <span class="material-symbols-outlined text-outline-variant text-6xl mb-3">devices_off</span>
+            <p class="text-on-surface-variant font-medium">Belum ada media pembelajaran digital untuk jenjang ini.</p>
         </div>
         @endforelse
     </div>

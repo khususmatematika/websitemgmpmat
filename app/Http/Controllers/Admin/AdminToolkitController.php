@@ -28,15 +28,31 @@ class AdminToolkitController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'icon' => 'required|string|max:100',
-            'embed_url' => 'required|url',
-        ]);
-        Toolkit::create($data);
-        return redirect()->route('admin.toolkit.index')->with('status', 'Toolkit berhasil ditambahkan.');
+{
+    $request->validate([
+        'title' => 'required|string|max:255',
+        'icon' => 'required|string|max:100',
+        'input_type' => 'required|in:url,code',
+    ]);
+
+    $inputType = $request->input('input_type');
+
+    if ($inputType === 'url') {
+        $request->validate(['embed_url' => 'required|url']);
+    } else {
+        $request->validate(['embed_code' => 'required|string']);
     }
+
+    Toolkit::create([
+        'title' => $request->title,
+        'icon' => $request->icon,
+        'input_type' => $inputType,
+        'embed_url' => $inputType === 'url' ? $request->embed_url : null,
+        'embed_code' => $inputType === 'code' ? $request->embed_code : null,
+    ]);
+
+    return redirect()->route('admin.toolkit.index')->with('status', 'Toolkit berhasil ditambahkan.');
+}
 
     public function edit(Toolkit $toolkit)
     {
@@ -44,15 +60,31 @@ class AdminToolkitController extends Controller
     }
 
     public function update(Request $request, Toolkit $toolkit)
-    {
-        $data = $request->validate([
-            'title' => 'required|string|max:255',
-            'icon' => 'required|string|max:100',
-            'embed_url' => 'required|url',
-        ]);
-        $toolkit->update($data);
-        return redirect()->route('admin.toolkit.index')->with('status', 'Toolkit berhasil diperbarui.');
+{
+    $request->validate([
+        'title' => 'required|string|max:255',
+        'icon' => 'required|string|max:100',
+        'input_type' => 'required|in:url,code',
+    ]);
+
+    $inputType = $request->input('input_type');
+
+    if ($inputType === 'url') {
+        $request->validate(['embed_url' => 'required|url']);
+    } else {
+        $request->validate(['embed_code' => 'required|string']);
     }
+
+    $toolkit->update([
+        'title' => $request->title,
+        'icon' => $request->icon,
+        'input_type' => $inputType,
+        'embed_url' => $inputType === 'url' ? $request->embed_url : null,
+        'embed_code' => $inputType === 'code' ? $request->embed_code : null,
+    ]);
+
+    return redirect()->route('admin.toolkit.index')->with('status', 'Toolkit berhasil diperbarui.');
+}
 
     public function destroy(Toolkit $toolkit)
     {

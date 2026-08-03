@@ -32,8 +32,8 @@
     <h2 class="font-headline text-lg font-bold text-navy-deep mb-1">Persentase Kehadiran per Kelas</h2>
     <p class="text-xs text-on-surface-variant mb-6">Bulan {{ $currentMonthLabel }}</p>
 
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-6">
-        @foreach ($attendanceByClass as $att)
+    <div class="flex gap-6 overflow-x-auto pb-2">
+    @foreach ($attendanceByClass as $att)
         @php
             $total = $att['hadir'] + $att['sakit'] + $att['izin'] + $att['alpa'];
             $pct = $att['persentase'] ?? 0;
@@ -41,8 +41,8 @@
             $circumference = 2 * M_PI * $radius;
             $offset = $circumference * (1 - $pct / 100);
         @endphp
-        <div class="text-center">
-            <div class="relative w-28 h-28 mx-auto">
+        <div class="text-center shrink-0 w-28">
+    <div class="relative w-28 h-28 mx-auto">
                 <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
                     <circle cx="50" cy="50" r="{{ $radius }}" fill="none" stroke="#e3e2e6" stroke-width="10"></circle>
                     @if ($total > 0)
