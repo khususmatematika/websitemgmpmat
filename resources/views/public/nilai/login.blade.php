@@ -1,12 +1,12 @@
 @extends('layouts.app')
-@section('title', 'Cek Nilai')
+@section('title', 'Cek Nilai dan Kehadiran')
 
 @section('content')
 <div class="min-h-[70vh] flex items-center justify-center px-margin-mobile">
     <div class="w-full max-w-md bg-white rounded-xl shadow-sm border border-outline-variant/30 p-8">
         <div class="text-center mb-8">
             <span class="material-symbols-outlined text-math-teal text-4xl">grade</span>
-            <h1 class="font-headline text-2xl font-bold text-navy-deep mt-2">Cek Nilai Siswa</h1>
+            <h1 class="font-headline text-2xl font-bold text-navy-deep mt-2">Cek Nilai dan Kehadiran Siswa</h1>
             <p class="text-on-surface-variant text-sm mt-1">Masuk menggunakan NIS dan password kamu.</p>
         </div>
 

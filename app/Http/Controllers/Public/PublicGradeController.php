@@ -52,26 +52,6 @@ class PublicGradeController extends Controller
         }
 
         $results = [];
-        $attendanceSummary = [];
-foreach ($student->classes as $class) {
-    $journalIds = TeachingJournal::where('class_id', $class->id)->pluck('id');
-    $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
-        ->where('student_id', $student->id)
-        ->selectRaw('status, count(*) as total')
-        ->groupBy('status')->pluck('total', 'status');
-
-    $hadir = (int) ($counts['Hadir'] ?? 0);
-    $sakit = (int) ($counts['Sakit'] ?? 0);
-    $izin = (int) ($counts['Izin'] ?? 0);
-    $alpa = (int) ($counts['Alpa'] ?? 0);
-    $total = $hadir + $sakit + $izin + $alpa;
-
-    $attendanceSummary[] = [
-        'class' => $class->name,
-        'hadir' => $hadir, 'sakit' => $sakit, 'izin' => $izin, 'alpa' => $alpa,
-        'percentage' => $total > 0 ? round(($hadir / $total) * 100, 1) : null,
-    ];
-}
 
         foreach ($student->classes as $class) {
             $componentsByTopic = AssessmentComponent::where('class_id', $class->id)
@@ -90,7 +70,7 @@ foreach ($student->classes as $class) {
                 $hasAttendanceComponent = $comps->contains('is_attendance', true);
 
                 if (!$hasAnyScore && !$hasAttendanceComponent) {
-                continue;
+                    continue;
                 }
 
                 $journalIds = TeachingJournal::where('class_id', $class->id)->pluck('id');
@@ -133,12 +113,12 @@ foreach ($student->classes as $class) {
                     $wTotal = 0;
                     foreach ($comps as $c) {
                         if ($c->is_attendance) {
-                            $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
+                            $counts2 = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
                                 ->where('student_id', $sid)
                                 ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
-                            $hadir = (int) ($counts['Hadir'] ?? 0);
-                            $total = array_sum($counts->toArray());
-                            $s = $total > 0 ? ($hadir / $total) * 100 : null;
+                            $hadir2 = (int) ($counts2['Hadir'] ?? 0);
+                            $total2 = array_sum($counts2->toArray());
+                            $s = $total2 > 0 ? ($hadir2 / $total2) * 100 : null;
                         } else {
                             $s = StudentScore::where('assessment_component_id', $c->id)
                                 ->where('student_id', $sid)->value('score');
@@ -173,11 +153,57 @@ foreach ($student->classes as $class) {
             }
         }
 
+        // ===== REKAP KEHADIRAN + DETAIL PER PERTEMUAN =====
+        $attendanceSummary = [];
+        foreach ($student->classes as $class) {
+            $journals = TeachingJournal::where('class_id', $class->id)
+                ->orderBy('journal_date')
+                ->get();
+
+            $journalIds = $journals->pluck('id');
+            $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
+                ->where('student_id', $student->id)
+                ->selectRaw('status, count(*) as total')
+                ->groupBy('status')->pluck('total', 'status');
+
+            $hadir = (int) ($counts['Hadir'] ?? 0);
+            $sakit = (int) ($counts['Sakit'] ?? 0);
+            $izin = (int) ($counts['Izin'] ?? 0);
+            $alpa = (int) ($counts['Alpa'] ?? 0);
+            $total = $hadir + $sakit + $izin + $alpa;
+
+            $meetings = [];
+            foreach ($journals as $j) {
+                $status = JournalAttendance::where('teaching_journal_id', $j->id)
+                    ->where('student_id', $student->id)
+                    ->value('status');
+
+                if ($status !== null) {
+                    $meetings[] = [
+                        'date' => $j->journal_date->translatedFormat('d F Y'),
+                        'materi' => $j->materi,
+                        'status' => $status,
+                    ];
+                }
+            }
+
+            $attendanceSummary[] = [
+                'class_id' => $class->id,
+                'class' => $class->name,
+                'hadir' => $hadir,
+                'sakit' => $sakit,
+                'izin' => $izin,
+                'alpa' => $alpa,
+                'percentage' => $total > 0 ? round(($hadir / $total) * 100, 1) : null,
+                'meetings' => $meetings,
+            ];
+        }
+
         return view('public.nilai.show', [
-    'student' => $student,
-    'results' => $results,
-    'attendanceSummary' => $attendanceSummary,
-]);
+            'student' => $student,
+            'results' => $results,
+            'attendanceSummary' => $attendanceSummary,
+        ]);
     }
 
     public function showChangePassword()
@@ -214,69 +240,69 @@ foreach ($student->classes as $class) {
         return redirect()->route('nilai.show')->with('status', 'Password berhasil diperbarui.');
     }
 
+    public function showClassTable($classId, $topicId)
+    {
+        if (!session()->has('student_portal_id')) {
+            return redirect()->route('nilai.login');
+        }
+
+        $isPublished = \App\Models\GradePublication::isPublished($classId, $topicId);
+        abort_unless($isPublished, 403, 'Tabel nilai kelas ini belum diaktifkan oleh guru.');
+
+        $class = \App\Models\SchoolClass::with('students')->findOrFail($classId);
+        $topic = MaterialTopic::findOrFail($topicId);
+
+        $components = AssessmentComponent::where('class_id', $classId)
+            ->where('material_topic_id', $topicId)
+            ->orderBy('order_index')->get();
+
+        $journalIds = TeachingJournal::where('class_id', $classId)->pluck('id');
+
+        $rows = [];
+        foreach ($class->students as $student) {
+            $scores = [];
+            $weightedSum = 0;
+            $totalWeight = 0;
+
+            foreach ($components as $c) {
+                if ($c->is_attendance) {
+                    $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
+                        ->where('student_id', $student->id)
+                        ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+                    $hadir = (int) ($counts['Hadir'] ?? 0);
+                    $total = array_sum($counts->toArray());
+                    $score = $total > 0 ? round(($hadir / $total) * 100, 2) : null;
+                } else {
+                    $score = StudentScore::where('assessment_component_id', $c->id)
+                        ->where('student_id', $student->id)->value('score');
+                }
+
+                $scores[] = $score;
+                if ($score !== null) {
+                    $weightedSum += $score * $c->weight;
+                    $totalWeight += $c->weight;
+                }
+            }
+
+            $rows[] = [
+                'name' => $student->name,
+                'scores' => $scores,
+                'final' => $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null,
+                'is_me' => $student->id === session('student_portal_id'),
+            ];
+        }
+
+        return view('public.nilai.class-table', [
+            'class' => $class,
+            'topic' => $topic,
+            'components' => $components,
+            'rows' => $rows,
+        ]);
+    }
+
     public function logout(Request $request)
     {
         session()->forget('student_portal_id');
         return redirect()->route('nilai.login');
     }
-
-    public function showClassTable($classId, $topicId)
-{
-    if (!session()->has('student_portal_id')) {
-        return redirect()->route('nilai.login');
-    }
-
-    $isPublished = \App\Models\GradePublication::isPublished($classId, $topicId);
-    abort_unless($isPublished, 403, 'Tabel nilai kelas ini belum diaktifkan oleh guru.');
-
-    $class = \App\Models\SchoolClass::with('students')->findOrFail($classId);
-    $topic = MaterialTopic::findOrFail($topicId);
-
-    $components = AssessmentComponent::where('class_id', $classId)
-        ->where('material_topic_id', $topicId)
-        ->orderBy('order_index')->get();
-
-    $journalIds = TeachingJournal::where('class_id', $classId)->pluck('id');
-
-    $rows = [];
-    foreach ($class->students as $student) {
-        $scores = [];
-        $weightedSum = 0;
-        $totalWeight = 0;
-
-        foreach ($components as $c) {
-            if ($c->is_attendance) {
-                $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
-                    ->where('student_id', $student->id)
-                    ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
-                $hadir = (int) ($counts['Hadir'] ?? 0);
-                $total = array_sum($counts->toArray());
-                $score = $total > 0 ? round(($hadir / $total) * 100, 2) : null;
-            } else {
-                $score = StudentScore::where('assessment_component_id', $c->id)
-                    ->where('student_id', $student->id)->value('score');
-            }
-
-            $scores[] = $score;
-            if ($score !== null) {
-                $weightedSum += $score * $c->weight;
-                $totalWeight += $c->weight;
-            }
-        }
-
-        $rows[] = [
-            'name' => $student->name,
-            'scores' => $scores,
-            'final' => $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null,
-            'is_me' => $student->id === session('student_portal_id'),
-        ];
-    }
-
-    return view('public.nilai.class-table', [
-        'class' => $class,
-        'topic' => $topic,
-        'components' => $components,
-        'rows' => $rows,
-    ]);
-}
 }

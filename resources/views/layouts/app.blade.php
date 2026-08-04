@@ -119,7 +119,7 @@
                         ['url' => route('forum.public'), 'icon' => 'forum', 'label' => 'Forum'],
                         ['url' => route('bank-soal.public'), 'icon' => 'quiz', 'label' => 'Bank Soal'],
                         ['url' => route('latihan.create'), 'icon' => 'history_edu', 'label' => 'Latihan'],
-                        ['url' => route('nilai.login'), 'icon' => 'grade', 'label' => 'Cek Nilai'],
+                        ['url' => route('nilai.login'), 'icon' => 'grade', 'label' => 'Cek Nilai dan Kehadiran'],
                     ];
                 @endphp
                 @foreach ($guestNav as $item)

@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Nilai Saya')
+@section('title', 'Nilai dan Kehadiran Saya')
 
 @section('content')
 <section class="py-16 px-margin-mobile md:px-margin-desktop max-w-3xl mx-auto">
@@ -34,39 +34,75 @@
     </div>
 
     @if (count($attendanceSummary) > 0)
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-    @foreach ($attendanceSummary as $att)
-    <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-5">
-        <div class="flex items-center justify-between mb-3">
-            <p class="font-bold text-navy-deep text-sm">{{ $att['class'] }}</p>
-            @if ($att['percentage'] !== null)
-            <span class="text-lg font-bold {{ $att['percentage'] >= 90 ? 'text-status-success' : ($att['percentage'] >= 75 ? 'text-status-warning' : 'text-status-error') }}">
-                {{ $att['percentage'] }}%
-            </span>
+        <h2 class="font-headline text-lg font-bold text-navy-deep mb-4">Rekap Kehadiran</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+         @foreach ($attendanceSummary as $att)
+        <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
+        <div class="p-5">
+            <div class="flex items-center justify-between mb-3">
+                <p class="font-bold text-navy-deep text-sm">{{ $att['class'] }}</p>
+                @if ($att['percentage'] !== null)
+                <span class="text-lg font-bold {{ $att['percentage'] >= 90 ? 'text-status-success' : ($att['percentage'] >= 75 ? 'text-status-warning' : 'text-status-error') }}">
+                    {{ $att['percentage'] }}%
+                </span>
+                @endif
+            </div>
+            <div class="grid grid-cols-4 gap-2 text-center mb-3">
+                <div>
+                    <p class="text-sm font-bold text-status-success">{{ $att['hadir'] }}</p>
+                    <p class="text-[10px] text-on-surface-variant">Hadir</p>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-status-warning">{{ $att['sakit'] }}</p>
+                    <p class="text-[10px] text-on-surface-variant">Sakit</p>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-blue-600">{{ $att['izin'] }}</p>
+                    <p class="text-[10px] text-on-surface-variant">Izin</p>
+                </div>
+                <div>
+                    <p class="text-sm font-bold text-status-error">{{ $att['alpa'] }}</p>
+                    <p class="text-[10px] text-on-surface-variant">Alpa</p>
+                </div>
+            </div>
+
+            @if (count($att['meetings']) > 0)
+            <button type="button" onclick="document.getElementById('meetings-{{ $att['class_id'] }}').classList.toggle('hidden'); this.querySelector('.chevron').classList.toggle('rotate-180')"
+                    class="w-full flex items-center justify-center gap-1 text-xs font-bold text-math-teal border-t border-outline-variant pt-3">
+                Lihat Detail per Pertemuan
+                <span class="material-symbols-outlined text-[16px] chevron transition-transform">expand_more</span>
+            </button>
             @endif
         </div>
-        <div class="grid grid-cols-4 gap-2 text-center">
-            <div>
-                <p class="text-sm font-bold text-status-success">{{ $att['hadir'] }}</p>
-                <p class="text-[10px] text-on-surface-variant">Hadir</p>
+
+        @if (count($att['meetings']) > 0)
+        <div id="meetings-{{ $att['class_id'] }}" class="hidden border-t border-outline-variant max-h-64 overflow-y-auto">
+            @foreach ($att['meetings'] as $m)
+            @php
+                $statusColor = match($m['status']) {
+                    'Hadir' => 'text-status-success bg-status-success/10',
+                    'Sakit' => 'text-status-warning bg-status-warning/10',
+                    'Izin' => 'text-blue-600 bg-blue-50',
+                    'Alpa' => 'text-status-error bg-error-container',
+                    default => 'text-on-surface-variant bg-surface-container',
+                };
+            @endphp
+            <div class="flex items-center justify-between px-5 py-2.5 border-b border-outline-variant last:border-b-0 text-xs">
+                <div class="min-w-0">
+                    <p class="font-medium text-navy-deep">{{ $m['date'] }}</p>
+                    @if ($m['materi'])
+                    <p class="text-on-surface-variant truncate">{{ $m['materi'] }}</p>
+                    @endif
+                </div>
+                <span class="shrink-0 px-2 py-1 rounded-full font-bold {{ $statusColor }}">{{ $m['status'] }}</span>
             </div>
-            <div>
-                <p class="text-sm font-bold text-status-warning">{{ $att['sakit'] }}</p>
-                <p class="text-[10px] text-on-surface-variant">Sakit</p>
-            </div>
-            <div>
-                <p class="text-sm font-bold text-blue-600">{{ $att['izin'] }}</p>
-                <p class="text-[10px] text-on-surface-variant">Izin</p>
-            </div>
-            <div>
-                <p class="text-sm font-bold text-status-error">{{ $att['alpa'] }}</p>
-                <p class="text-[10px] text-on-surface-variant">Alpa</p>
-            </div>
+            @endforeach
         </div>
-    </div>
-    @endforeach
-</div>
-@endif
+        @endif
+        </div>
+        @endforeach
+        </div>
+    @endif
 
     @if (session('status'))
     <div class="mb-6 p-3 bg-status-success/10 text-status-success rounded-md text-sm">{{ session('status') }}</div>

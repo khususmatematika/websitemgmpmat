@@ -245,7 +245,7 @@ protected function dayNameFromDate(string $date): string
                     ];
                 }
 
-                usort($summary, fn($a, $b) => $a['persentase'] <=> $b['persentase']);
+                usort($summary, fn($a, $b) => strcmp($a['student']->name, $b['student']->name));
             }
         }
 
