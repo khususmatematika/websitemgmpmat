@@ -3,8 +3,23 @@
 
 @section('content')
 <div class="max-w-xl mx-auto py-16 px-margin-mobile">
+    <a href="{{ route('forum.public') }}" class="inline-flex items-center gap-1 text-sm font-bold text-on-surface-variant hover:text-math-teal mb-6">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        Kembali ke Forum
+    </a>
+
     <h1 class="font-headline text-2xl font-bold text-navy-deep mb-2">Buat Postingan Baru</h1>
-    <p class="text-on-surface-variant mb-8">Postingan langsung tayang ke publik. Gunakan bahasa yang sopan.</p>
+    <p class="text-on-surface-variant mb-6">Postingan langsung tayang ke publik. Gunakan bahasa yang sopan.</p>
+
+    <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-4 mb-6 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center">
+            <span class="material-symbols-outlined text-secondary">person</span>
+        </div>
+        <div>
+            <p class="text-xs text-on-surface-variant">Diposting sebagai</p>
+            <p class="font-bold text-navy-deep text-sm">{{ $actor['name'] }}</p>
+        </div>
+    </div>
 
     @if ($errors->any())
         <div class="mb-4 p-3 bg-error-container text-status-error rounded-md text-sm">
@@ -15,13 +30,6 @@
     <form method="POST" action="{{ route('forum.store') }}" enctype="multipart/form-data"
           class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6 space-y-4">
         @csrf
-
-        <div>
-            <label class="text-sm font-medium text-on-surface-variant">Nama Kamu</label>
-            <input type="text" name="author_name" id="author_name" required
-                   value="{{ old('author_name') }}"
-                   class="mt-1 w-full rounded-md border-outline-variant focus:ring-secondary focus:border-secondary">
-        </div>
 
         <div>
             <label class="text-sm font-medium text-on-surface-variant">Isi Postingan</label>
@@ -40,17 +48,4 @@
         </button>
     </form>
 </div>
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const nameInput = document.getElementById('author_name');
-    const saved = localStorage.getItem('student_display_name');
-    if (saved && !nameInput.value) nameInput.value = saved;
-    document.querySelector('form').addEventListener('submit', () => {
-        localStorage.setItem('student_display_name', nameInput.value);
-    });
-});
-</script>
-@endpush
 @endsection

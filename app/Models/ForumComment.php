@@ -8,12 +8,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ForumComment extends Model
 {
-    protected $fillable = [
-        'forum_post_id',
-        'parent_id',
-        'commenter_name',
-        'content',
-    ];
+    protected $fillable = ['forum_post_id', 'parent_id', 'commenter_name', 'content', 'image_path'];
 
     // Balasan langsung (1 tingkat)
     public function replies(): HasMany

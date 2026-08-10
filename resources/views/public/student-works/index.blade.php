@@ -3,6 +3,11 @@
 
 @section('content')
 <section class="py-16 px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto">
+    <a href="{{ route('home') }}" class="inline-flex items-center gap-1 text-sm font-bold text-on-surface-variant hover:text-math-teal mb-6">
+        <span class="material-symbols-outlined text-[18px]">arrow_back</span>
+        Kembali ke Beranda
+    </a>
+
     <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
         <div>
             <span class="text-math-teal font-label text-xs uppercase tracking-widest mb-2 block">Galeri Kreativitas</span>
@@ -18,6 +23,9 @@
 
     @if (session('status'))
         <div class="mb-6 p-3 bg-status-success/10 text-status-success rounded-md text-sm">{{ session('status') }}</div>
+    @endif
+    @if (session('error'))
+        <div class="mb-6 p-3 bg-error-container text-status-error rounded-md text-sm">{{ session('error') }}</div>
     @endif
 
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -41,11 +49,16 @@
             </div>
 
             <div class="p-3">
-                <p class="font-bold text-navy-deep text-sm truncate">{{ $work->student_name }}</p>
+                <p class="font-bold text-navy-deep text-sm truncate flex items-center gap-1">
+                    {{ $work->student_name }}
+                    @if ($work->actor_type === 'teacher')
+                    <span class="bg-navy-deep text-white text-[9px] px-1.5 py-0.5 rounded-full shrink-0">Guru</span>
+                    @endif
+                </p>
                 <div class="flex items-center gap-3 mt-1 text-on-surface-variant text-xs">
                     <span class="flex items-center gap-1">
-                     <span class="material-symbols-outlined text-[16px]">favorite</span>
-                     <span class="grid-like-count-{{ $work->id }}">{{ $work->likes_count }}</span>
+                        <span class="material-symbols-outlined text-[16px]">favorite</span>
+                        <span class="grid-like-count-{{ $work->id }}">{{ $work->likes_count }}</span>
                     </span>
                     <span class="flex items-center gap-1">
                         <span class="material-symbols-outlined text-[16px]">chat_bubble</span>
@@ -60,7 +73,12 @@
             <div class="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
                 <div class="p-4 border-b border-outline-variant flex justify-between items-center sticky top-0 bg-white z-10">
                     <div>
-                        <p class="font-bold text-navy-deep">{{ $work->student_name }}</p>
+                        <p class="font-bold text-navy-deep flex items-center gap-1">
+                            {{ $work->student_name }}
+                            @if ($work->actor_type === 'teacher')
+                            <span class="bg-navy-deep text-white text-[9px] px-1.5 py-0.5 rounded-full">Guru</span>
+                            @endif
+                        </p>
                         <p class="text-xs text-on-surface-variant">{{ $work->created_at->diffForHumans() }}</p>
                     </div>
                     <button onclick="document.getElementById('work-modal-{{ $work->id }}').classList.add('hidden')"
@@ -84,10 +102,9 @@
 
                     <div class="flex items-center gap-4 pt-2 border-t border-outline-variant">
                         <button type="button"
-                            class="like-btn flex items-center gap-1 text-sm font-bold {{ $work->isLikedBy($identifier) ? 'text-status-error' : 'text-on-surface-variant' }}"
-                            data-url="{{ route('student-works.like', $work) }}"
-                            data-liked="{{ $work->isLikedBy($identifier) ? '1' : '0' }}"
-                            id="like-btn-{{ $work->id }}">
+                                class="like-btn flex items-center gap-1 text-sm font-bold {{ $work->isLikedBy($identifier) ? 'text-status-error' : 'text-on-surface-variant' }}"
+                                data-url="{{ route('student-works.like', $work) }}"
+                                id="like-btn-{{ $work->id }}">
                             <span class="material-symbols-outlined like-icon" style="font-variation-settings: 'FILL' {{ $work->isLikedBy($identifier) ? 1 : 0 }};">favorite</span>
                             <span class="like-count">{{ $work->likes_count }}</span> Suka
                         </button>
@@ -99,7 +116,6 @@
                         </button>
                     </div>
 
-                    {{-- Form Laporkan Karya --}}
                     <div id="report-form-{{ $work->id }}" class="hidden bg-error-container/20 rounded-lg p-4">
                         <form action="{{ route('student-works.report', $work) }}" method="POST" class="space-y-3">
                             @csrf
@@ -119,22 +135,33 @@
                     <div class="space-y-3 pt-2 border-t border-outline-variant">
                         <p class="text-sm font-bold text-navy-deep">Komentar ({{ $work->comments->count() + $work->comments->sum(fn($c) => $c->replies->count()) }})</p>
 
-                         @forelse ($work->comments as $comment)
-                         @include('public.student-works.partials.comment', ['comment' => $comment, 'work' => $work, 'reasons' => $reasons, 'depth' => 0])
-                         @empty
-                         <p class="text-xs text-on-surface-variant">Belum ada komentar.</p>
-                     @endforelse
+                        @forelse ($work->comments as $comment)
+                        @include('public.student-works.partials.comment', ['comment' => $comment, 'work' => $work, 'reasons' => $reasons, 'depth' => 0, 'isLoggedIn' => $isLoggedIn])
+                        @empty
+                        <p class="text-xs text-on-surface-variant">Belum ada komentar.</p>
+                        @endforelse
                     </div>
 
                     {{-- Form Tambah Komentar --}}
-                    <form action="{{ route('student-works.comment', $work) }}" method="POST" class="space-y-2 pt-2 border-t border-outline-variant">
+                    @if ($isLoggedIn)
+                    <form action="{{ route('student-works.comment', $work) }}" method="POST" enctype="multipart/form-data" class="space-y-2 pt-2 border-t border-outline-variant">
                         @csrf
-                        <input type="text" name="commenter_name" required placeholder="Nama kamu"
-                               class="w-full text-sm rounded-md border-outline-variant" id="commenter-name-{{ $work->id }}">
-                        <textarea name="content" required rows="2" placeholder="Tulis komentar..."
-                                  class="w-full text-sm rounded-md border-outline-variant"></textarea>
-                        <button class="bg-navy-deep text-white text-sm font-bold px-4 py-2 rounded-md">Kirim Komentar</button>
+                        <textarea name="content" rows="2" placeholder="Tulis komentar..." class="w-full text-sm rounded-md border-outline-variant"></textarea>
+                        <div class="flex items-center gap-2">
+                            <label class="flex items-center gap-1 text-xs text-on-surface-variant cursor-pointer">
+                                <span class="material-symbols-outlined text-[16px]">image</span>
+                                <span id="main-file-label-{{ $work->id }}">Tambah Foto</span>
+                                <input type="file" name="image" accept="image/*" class="hidden" onchange="updateFileLabel(this, 'main-file-label-{{ $work->id }}')">
+                            </label>
+                            <button class="ml-auto bg-navy-deep text-white text-sm font-bold px-4 py-2 rounded-md">Kirim Komentar</button>
+                        </div>
                     </form>
+                    @else
+                    <div class="pt-2 border-t border-outline-variant text-center py-4">
+                        <p class="text-xs text-on-surface-variant mb-2">Masuk untuk memberi suka dan komentar</p>
+                        <a href="{{ route('login.select') }}" class="inline-block bg-math-teal text-white text-xs font-bold px-4 py-2 rounded-md">Masuk</a>
+                    </div>
+                    @endif
                 </div>
             </div>
         </div>
@@ -146,62 +173,56 @@
 
 @push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Auto-fill nama komentator/pelapor dari localStorage
-    const savedName = localStorage.getItem('student_display_name');
-
-    function applySavedName() {
-        if (!savedName) return;
-        document.querySelectorAll('input[name="commenter_name"]').forEach(el => {
-            if (!el.value) el.value = savedName;
-        });
+function updateFileLabel(input, labelId) {
+    const label = document.getElementById(labelId);
+    if (input.files.length > 0 && label) {
+        label.textContent = input.files[0].name;
     }
-    applySavedName();
-    document.body.addEventListener('click', () => setTimeout(applySavedName, 50));
-    document.body.addEventListener('change', (e) => {
-        if (e.target.name === 'commenter_name') {
-            localStorage.setItem('student_display_name', e.target.value);
-        }
-    });
+}
 
-    // Like via AJAX — tidak reload halaman, modal tetap terbuka, posisi scroll tidak berubah
-    document.body.addEventListener('click', async (e) => {
-        const btn = e.target.closest('.like-btn');
-        if (!btn) return;
+document.body.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.like-btn');
+    if (!btn) return;
 
-        const url = btn.dataset.url;
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content
-            || document.querySelector('input[name="_token"]')?.value;
+    const url = btn.dataset.url;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
-        try {
-            const res = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': csrfToken,
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                },
-            });
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+            },
+        });
+
+        if (res.status === 401) {
             const data = await res.json();
-
-            const icon = btn.querySelector('.like-icon');
-            const countEl = btn.querySelector('.like-count');
-
-            countEl.textContent = data.likes_count;
-            icon.style.fontVariationSettings = `'FILL' ${data.liked ? 1 : 0}`;
-            btn.classList.toggle('text-status-error', data.liked);
-            btn.classList.toggle('text-on-surface-variant', !data.liked);
-
-            // Sinkronkan angka di kartu grid galeri (di luar modal)
-            const workId = url.match(/karya-siswa\/(\d+)\/like/)?.[1];
-            if (workId) {
-                const gridCount = document.querySelector('.grid-like-count-' + workId);
-                if (gridCount) gridCount.textContent = data.likes_count;
+            if (confirm(data.message + '\n\nMasuk sekarang?')) {
+                window.location.href = data.login_url;
             }
-        } catch (err) {
-            console.error('Gagal memproses like:', err);
+            return;
         }
-    });
+
+        const data = await res.json();
+
+        const icon = btn.querySelector('.like-icon');
+        const countEl = btn.querySelector('.like-count');
+
+        countEl.textContent = data.likes_count;
+        icon.style.fontVariationSettings = `'FILL' ${data.liked ? 1 : 0}`;
+        btn.classList.toggle('text-status-error', data.liked);
+        btn.classList.toggle('text-on-surface-variant', !data.liked);
+
+        const workId = url.match(/karya-siswa\/(\d+)\/like/)?.[1];
+        if (workId) {
+            const gridCount = document.querySelector('.grid-like-count-' + workId);
+            if (gridCount) gridCount.textContent = data.likes_count;
+        }
+    } catch (err) {
+        console.error('Gagal memproses like:', err);
+    }
 });
 </script>
 @endpush

@@ -28,7 +28,7 @@
                 <p class="text-xs text-on-surface-variant mt-1">Password default sama dengan NIS jika belum pernah diganti.</p>
             </div>
             <button type="submit" class="w-full bg-math-teal text-white py-3 rounded-md font-bold hover:brightness-110 transition-all">
-                Lihat Nilai
+                Login Siswa
             </button>
         </form>
     </div>

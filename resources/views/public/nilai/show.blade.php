@@ -35,7 +35,11 @@
 
     @if (count($attendanceSummary) > 0)
         <h2 class="font-headline text-lg font-bold text-navy-deep mb-4">Rekap Kehadiran</h2>
+        @if (count($attendanceSummary) > 1)
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+        @else
+        <div class="grid grid-cols-1 gap-4 mb-8">
+        @endif
          @foreach ($attendanceSummary as $att)
         <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
         <div class="p-5">

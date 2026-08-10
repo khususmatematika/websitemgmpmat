@@ -4,7 +4,6 @@
 @section('content')
 <div class="min-h-[calc(100vh-72px)] flex">
 
-    {{-- Panel Kiri: Branding --}}
     <div class="hidden lg:flex lg:w-1/2 hero-gradient relative overflow-hidden flex-col items-center justify-center text-center p-16">
         <div class="absolute inset-0 math-pattern opacity-10"></div>
         <div class="absolute -top-24 -left-24 w-96 h-96 bg-math-teal/20 rounded-full blur-[100px]"></div>
@@ -16,8 +15,7 @@
             </div>
             <h1 class="font-headline text-3xl font-bold text-white">SMAN 1 Turen<br>Math Portal</h1>
             <p class="text-white/70 text-sm leading-relaxed">
-                Platform terpadu bagi Guru dan Admin untuk mengelola pembelajaran matematika,
-                jurnal mengajar, materi, dan sumber daya akademik lainnya.
+                Satu pintu masuk untuk Siswa, Guru, dan Admin. Sistem otomatis mengenali peran Anda.
             </p>
             <div class="flex items-center justify-center gap-6 pt-4 text-white/50 text-xs">
                 <div class="flex items-center gap-2">
@@ -32,7 +30,6 @@
         </div>
     </div>
 
-    {{-- Panel Kanan: Form Login --}}
     <div class="flex-1 flex items-center justify-center p-6 md:p-16 bg-surface">
         <div class="w-full max-w-sm">
             <div class="mb-10">
@@ -41,9 +38,15 @@
                     Area Terbatas
                 </span>
                 <h2 class="font-headline text-2xl font-bold text-navy-deep">Selamat Datang Kembali</h2>
-                <p class="text-on-surface-variant text-sm mt-1">Masuk menggunakan akun Guru atau Admin Anda.</p>
+                <p class="text-on-surface-variant text-sm mt-1">Masuk sebagai Siswa (NIS), Guru, atau Admin (Email).</p>
             </div>
 
+            @if (session('error'))
+                <div class="mb-4 p-3 bg-error-container text-status-error rounded-md text-sm flex items-center gap-2">
+                    <span class="material-symbols-outlined text-[18px]">error</span>
+                    {{ session('error') }}
+                </div>
+            @endif
             @if ($errors->any())
                 <div class="mb-6 p-3 bg-error-container text-status-error rounded-md text-sm flex items-center gap-2">
                     <span class="material-symbols-outlined text-[18px]">error</span>
@@ -55,11 +58,11 @@
                 @csrf
 
                 <div>
-                    <label class="text-sm font-medium text-navy-deep">Alamat Email</label>
+                    <label class="text-sm font-medium text-navy-deep">Email (Guru/Admin) atau NIS (Siswa)</label>
                     <div class="relative mt-1">
-                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">mail</span>
-                        <input type="email" name="email" value="{{ old('email') }}" required autofocus
-                               placeholder="nama@sman1turen.sch.id"
+                        <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">person</span>
+                        <input type="text" name="identifier" value="{{ old('identifier') }}" required autofocus
+                               placeholder="nama@sman1turen.sch.id atau 12345"
                                class="w-full pl-10 rounded-md border-outline-variant focus:ring-math-teal focus:border-math-teal text-sm">
                     </div>
                 </div>
@@ -71,6 +74,7 @@
                         <input type="password" name="password" required placeholder="••••••••"
                                class="w-full pl-10 rounded-md border-outline-variant focus:ring-math-teal focus:border-math-teal text-sm">
                     </div>
+                    <p class="text-xs text-on-surface-variant mt-1">Siswa: password default sama dengan NIS jika belum pernah diganti.</p>
                 </div>
 
                 <label class="flex items-center gap-2 text-sm text-on-surface-variant cursor-pointer">
@@ -86,7 +90,7 @@
             </form>
 
             <p class="text-center text-xs text-on-surface-variant mt-8">
-                Sistem otomatis mengenali peran Anda sebagai Guru atau Admin.
+                Sistem otomatis mengenali peran Anda sebagai Siswa, Guru, atau Admin.
             </p>
         </div>
     </div>

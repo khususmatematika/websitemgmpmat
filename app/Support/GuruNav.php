@@ -13,8 +13,10 @@ class GuruNav
             ['label' => 'Materi', 'icon' => 'book', 'url' => route('guru.materi.index'), 'active' => 'guru.materi.*'],
             ['label' => 'Pembelajaran Digital', 'icon' => 'devices', 'url' => route('guru.pembelajaran-digital.index'), 'active' => 'guru.pembelajaran-digital.*'],
             ['label' => 'Bank Soal', 'icon' => 'quiz', 'url' => route('guru.bank-soal.index'), 'active' => 'guru.bank-soal.*'],
-            ['label' => 'Input Nilai', 'icon' => 'grade', 'url' => route('guru.nilai.index'), 'active' => 'guru.nilai.*'],
             ['label' => 'Generator Modul Ajar', 'icon' => 'auto_awesome', 'url' => route('guru.modul-ajar.index'), 'active' => 'guru.modul-ajar.*'],
+            ['label' => 'Input Nilai', 'icon' => 'grade', 'url' => route('guru.nilai.index'), 'active' => 'guru.nilai.*'],
+            ['label' => 'Karya Siswa', 'icon' => 'auto_awesome_motion', 'url' => route('student-works.public'), 'active' => 'student-works.*', 'external' => true],
+            ['label' => 'Forum', 'icon' => 'forum', 'url' => route('forum.public'), 'active' => 'forum.*', 'external' => true],
         ];
     }
 }

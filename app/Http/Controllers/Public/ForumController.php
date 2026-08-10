@@ -5,46 +5,49 @@ use App\Http\Controllers\Controller;
 use App\Models\ForumComment;
 use App\Models\ForumPost;
 use App\Models\Report;
-use App\Support\ReportReasons;
+use App\Support\ActiveActor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class ForumController extends Controller
 {
     public function index(Request $request)
     {
-        $posts = ForumPost::withCount('likes')
-            ->latest()
-            ->get();
-
-        $identifier = $this->identifier($request);
+        $posts = ForumPost::withCount('likes')->latest()->get();
+        $actor = ActiveActor::current();
 
         return view('public.forum.index', [
             'posts' => $posts,
-            'identifier' => $identifier,
-            'reasons' => ReportReasons::LIST,
+            'identifier' => $actor['identifier'] ?? 'guest:' . session()->getId(),
+            'reasons' => \App\Support\ReportReasons::LIST,
+            'isLoggedIn' => $actor !== null,
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('public.forum.create');
+        if ($resp = $this->requireLogin($request)) return $resp;
+
+        return view('public.forum.create', ['actor' => ActiveActor::current()]);
     }
 
     public function store(Request $request)
     {
+        if ($resp = $this->requireLogin($request)) return $resp;
+
         $data = $request->validate([
-            'author_name' => 'required|string|max:100',
             'content' => 'required|string|max:2000',
-            'image' => 'nullable|image|max:5120', // 5MB
+            'image' => 'nullable|image|max:5120',
         ]);
+
+        $actor = ActiveActor::current();
 
         if ($request->hasFile('image')) {
             $data['image_path'] = $request->file('image')->store('forum', 'public');
         }
 
         ForumPost::create([
-            'author_name' => $data['author_name'],
+            'author_name' => $actor['name'],
+            'actor_type' => $actor['type'],
             'content' => $data['content'],
             'image_path' => $data['image_path'] ?? null,
         ]);
@@ -54,37 +57,55 @@ class ForumController extends Controller
 
     public function comment(Request $request, ForumPost $post)
     {
-    $data = $request->validate([
-        'commenter_name' => 'required|string|max:100',
-        'content' => 'required|string|max:500',
-        'parent_id' => 'nullable|exists:forum_comments,id',
-    ]);
+        if ($resp = $this->requireLogin($request, $request->wantsJson())) return $resp;
 
-    $comment = $post->comments()->create($data);
-
-    if ($request->wantsJson()) {
-        return response()->json([
-            'status' => 'ok',
-            'total_comments' => $post->totalCommentCount(),
+        $data = $request->validate([
+            'content' => 'nullable|string|max:500',
+            'parent_id' => 'nullable|exists:forum_comments,id',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
         ]);
-    }
 
-    return back()->with('status', 'Komentar berhasil dikirim.');
+        if (empty($data['content']) && !$request->hasFile('image')) {
+            return back()->withErrors(['content' => 'Isi komentar atau lampirkan foto.']);
+        }
+
+        $actor = ActiveActor::current();
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('comment-images', 'public');
+        }
+
+        $post->comments()->create([
+            'commenter_name' => $actor['name'],
+            'actor_type' => $actor['type'],
+            'content' => $data['content'] ?? '',
+            'image_path' => $imagePath,
+            'parent_id' => $data['parent_id'] ?? null,
+        ]);
+
+        if ($request->wantsJson()) {
+            return response()->json(['status' => 'ok', 'total_comments' => $post->totalCommentCount()]);
+        }
+
+        return back()->with('status', 'Komentar berhasil dikirim.');
     }
 
     public function likePost(Request $request, ForumPost $post)
     {
-        return $this->toggleLike($request, $post);
+        if ($resp = $this->requireLogin($request, true)) return $resp;
+        return $this->toggleLike($post);
     }
 
     public function likeComment(Request $request, ForumComment $comment)
     {
-        return $this->toggleLike($request, $comment);
+        if ($resp = $this->requireLogin($request, true)) return $resp;
+        return $this->toggleLike($comment);
     }
 
-    protected function toggleLike(Request $request, $model)
+    protected function toggleLike($model)
     {
-        $identifier = $this->identifier($request);
+        $identifier = ActiveActor::current()['identifier'];
         $existing = $model->likes()->where('liker_identifier', $identifier)->first();
 
         if ($existing) {
@@ -104,7 +125,7 @@ class ForumController extends Controller
     public function reportPost(Request $request, ForumPost $post)
     {
         $data = $request->validate([
-            'reason' => 'required|string|in:' . implode(',', ReportReasons::LIST),
+            'reason' => 'required|string|in:' . implode(',', \App\Support\ReportReasons::LIST),
             'reporter_name' => 'nullable|string|max:100',
         ]);
 
@@ -122,7 +143,7 @@ class ForumController extends Controller
     public function reportComment(Request $request, ForumComment $comment)
     {
         $data = $request->validate([
-            'reason' => 'required|string|in:' . implode(',', ReportReasons::LIST),
+            'reason' => 'required|string|in:' . implode(',', \App\Support\ReportReasons::LIST),
             'reporter_name' => 'nullable|string|max:100',
         ]);
 
@@ -137,12 +158,20 @@ class ForumController extends Controller
         return back()->with('status', 'Laporan komentar berhasil dikirim.');
     }
 
-    // Identitas sama dengan Karya Siswa — 1 identitas per browser dipakai lintas fitur
-    protected function identifier(Request $request): string
+    protected function requireLogin(Request $request, bool $forceJson = false)
     {
-        if (!$request->session()->has('student_identifier')) {
-            $request->session()->put('student_identifier', (string) Str::uuid());
+        if (ActiveActor::isLoggedIn()) {
+            return null;
         }
-        return $request->session()->get('student_identifier');
+
+        if ($forceJson || $request->wantsJson()) {
+            return response()->json([
+                'error' => 'login_required',
+                'message' => 'Silakan masuk terlebih dahulu untuk melanjutkan.',
+                'login_url' => route('login.select'),
+            ], 401);
+        }
+
+        return redirect()->route('login.select')->with('error', 'Silakan masuk terlebih dahulu.');
     }
 }

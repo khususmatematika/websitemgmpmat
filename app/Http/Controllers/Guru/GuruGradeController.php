@@ -215,28 +215,13 @@ class GuruGradeController extends Controller
         $col++;
 
         $weightedSum = 0;
-        $totalWeight = 0;
+        $totalWeight = $components->sum('weight'); // total bobot SEMUA komponen, bukan hanya yang terisi
 
         foreach ($components as $c) {
-            if ($c->is_attendance) {
-                $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
-                    ->where('student_id', $student->id)
-                    ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
-                $hadir = (int) ($counts['Hadir'] ?? 0);
-                $total = array_sum($counts->toArray());
-                $score = $total > 0 ? round(($hadir / $total) * 100, 2) : 0;
-            } else {
-                $score = StudentScore::where('assessment_component_id', $c->id)
-                    ->where('student_id', $student->id)->value('score');
-            }
+            // ...
+            $sheet->setCellValue([$col++, $row], $score ?? '-');
 
-            $sheet->setCellValue([$col, $row], $score ?? '-');
-            $col++;
-
-            if ($score !== null) {
-                $weightedSum += $score * $c->weight;
-                $totalWeight += $c->weight;
-            }
+            $weightedSum += ($score ?? 0) * $c->weight; // komponen kosong dihitung 0
         }
 
         $final = $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : '-';

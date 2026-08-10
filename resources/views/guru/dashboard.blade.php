@@ -32,7 +32,7 @@
     <h2 class="font-headline text-lg font-bold text-navy-deep mb-1">Persentase Kehadiran per Kelas</h2>
     <p class="text-xs text-on-surface-variant mb-6">Bulan {{ $currentMonthLabel }}</p>
 
-    <div class="flex gap-6 overflow-x-auto pb-2">
+    <div class="grid grid-cols-3 gap-4 md:flex md:gap-6 md:overflow-x-auto md:pb-2">
     @foreach ($attendanceByClass as $att)
         @php
             $total = $att['hadir'] + $att['sakit'] + $att['izin'] + $att['alpa'];

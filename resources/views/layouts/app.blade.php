@@ -119,7 +119,7 @@
                         ['url' => route('forum.public'), 'icon' => 'forum', 'label' => 'Forum'],
                         ['url' => route('bank-soal.public'), 'icon' => 'quiz', 'label' => 'Bank Soal'],
                         ['url' => route('latihan.create'), 'icon' => 'history_edu', 'label' => 'Latihan'],
-                        ['url' => route('nilai.login'), 'icon' => 'grade', 'label' => 'Cek Nilai dan Kehadiran'],
+                        
                     ];
                 @endphp
                 @foreach ($guestNav as $item)
@@ -131,7 +131,7 @@
                 </a>
                 @endforeach
             </nav>
-            <a href="{{ route('login') }}" class="flex items-center gap-2 bg-navy-deep text-white px-3 md:px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-all shrink-0">
+            <a href="{{ route('login.select') }}" class="flex items-center gap-2 bg-navy-deep text-white px-3 md:px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-all shrink-0">
                 <span class="material-symbols-outlined text-[18px]">account_circle</span>
                 <span class="hidden sm:inline">Masuk</span>
             </a>
@@ -234,9 +234,9 @@
                 <span class="material-symbols-outlined text-[22px]">history_edu</span>
                 <span class="text-[10px] font-medium">Latihan</span>
             </a>
-            <a href="{{ route('login') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg text-on-surface-variant">
-                <span class="material-symbols-outlined text-[22px]">account_circle</span>
-                <span class="text-[10px] font-medium">Masuk</span>
+            <a href="{{ route('login.select') }}" class="flex items-center gap-2 bg-navy-deep text-white px-3 md:px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-all shrink-0">
+                <span class="material-symbols-outlined text-[18px]">account_circle</span>
+                <span class="hidden sm:inline">Masuk</span>
             </a>
         </nav>
         @endguest

@@ -6,6 +6,10 @@ use App\Http\Controllers\Public\MaterialPublicController;
 use App\Http\Controllers\Public\ToolkitPublicController;
 use App\Http\Controllers\Public\StudentWorkController;
 use App\Http\Controllers\Public\ForumController;
+use App\Http\Controllers\Public\BankSoalController;
+use App\Http\Controllers\Public\LatihanController;
+use App\Http\Controllers\Public\PublicGradeController;
+use App\Http\Controllers\Public\LoginSelectController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\GuruAuthController;
 use App\Http\Controllers\Auth\AdminAuthController;
@@ -13,31 +17,31 @@ use App\Http\Controllers\Guru\GuruDashboardController;
 use App\Http\Controllers\Guru\GuruProfileController;
 use App\Http\Controllers\Guru\GuruMaterialController;
 use App\Http\Controllers\Guru\GuruDigitalLessonController;
+use App\Http\Controllers\Guru\GuruBankSoalController;
+use App\Http\Controllers\Guru\GuruJournalController;
+use App\Http\Controllers\Guru\GuruModuleGeneratorController;
+use App\Http\Controllers\Guru\GuruGradeController;
 use App\Http\Controllers\Admin\AdminDashboardController;
 use App\Http\Controllers\Admin\AdminTeacherController;
 use App\Http\Controllers\Admin\AdminMaterialController;
+use App\Http\Controllers\Admin\AdminMaterialTopicController;
 use App\Http\Controllers\Admin\AdminDigitalLessonController;
 use App\Http\Controllers\Admin\AdminToolkitController;
 use App\Http\Controllers\Admin\AdminStudentWorkController;
 use App\Http\Controllers\Admin\AdminReportController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Public\BankSoalController;
-use App\Http\Controllers\Public\LatihanController;
-use App\Http\Controllers\Guru\GuruBankSoalController;
 use App\Http\Controllers\Admin\AdminBankSoalController;
-use App\Http\Controllers\Admin\AdminMaterialTopicController;
-use App\Http\Controllers\Guru\GuruJournalController;
 use App\Http\Controllers\Admin\AdminStudentController;
 use App\Http\Controllers\Admin\AdminClassController;
 use App\Http\Controllers\Admin\AdminLetterheadController;
-use App\Http\Controllers\Guru\GuruModuleGeneratorController;
-use App\Http\Controllers\Guru\GuruGradeController;
-use App\Http\Controllers\Public\PublicGradeController;
+use Illuminate\Support\Facades\Route;
 
 // ================= BERANDA =================
 Route::get('/', [HomeController::class, 'index'])->name('home');
 
-// ================= LOGIN GABUNGAN (Guru & Admin otomatis dikenali) =================
+// ================= LOGIN TERPUSAT (pilih peran) =================
+Route::get('/masuk', [LoginSelectController::class, 'index'])->name('login.select');
+
+// ================= LOGIN GABUNGAN GURU/ADMIN (otomatis dikenali) =================
 Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
@@ -49,6 +53,7 @@ Route::get('/profil-guru', [TeacherPublicController::class, 'index'])->name('tea
 Route::get('/materi', [MaterialPublicController::class, 'index'])->name('materials.public');
 Route::get('/materi/{material}/preview', [MaterialPublicController::class, 'preview'])->name('materials.preview');
 Route::get('/pembelajaran-digital', [MaterialPublicController::class, 'digitalLessons'])->name('digital-lessons.public');
+Route::post('/pembelajaran-digital/{digitalLesson}/selesai', [MaterialPublicController::class, 'markLessonComplete'])->name('digital-lessons.complete');
 Route::get('/toolkit', [ToolkitPublicController::class, 'index'])->name('toolkits.public');
 
 // ================= PUBLIK: Karya Siswa =================
@@ -80,14 +85,13 @@ Route::get('/latihan/{quizSession}', [LatihanController::class, 'show'])->name('
 Route::post('/latihan/{quizSession}/selesai', [LatihanController::class, 'finish'])->name('latihan.finish');
 Route::get('/leaderboard', [LatihanController::class, 'leaderboard'])->name('leaderboard.public');
 
-// ================= PUBLIK: Cek Nilai =================
+// ================= PUBLIK: Cek Nilai dan Kehadiran Siswa =================
 Route::get('/nilai', [PublicGradeController::class, 'showLogin'])->name('nilai.login');
 Route::post('/nilai/login', [PublicGradeController::class, 'login'])->name('nilai.login.submit');
 Route::get('/nilai/lihat', [PublicGradeController::class, 'show'])->name('nilai.show');
 Route::post('/nilai/logout', [PublicGradeController::class, 'logout'])->name('nilai.logout');
 Route::get('/nilai/ganti-password', [PublicGradeController::class, 'showChangePassword'])->name('nilai.password.edit');
 Route::post('/nilai/ganti-password', [PublicGradeController::class, 'updatePassword'])->name('nilai.password.update');
-
 Route::get('/nilai/kelas/{classId}/{topicId}', [PublicGradeController::class, 'showClassTable'])->name('nilai.class-table');
 
 // ================= GURU =================
@@ -102,7 +106,10 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::put('/profil', [GuruProfileController::class, 'update'])->name('profile.update');
 
         Route::resource('materi', GuruMaterialController::class)->except(['show']);
+
         Route::resource('pembelajaran-digital', GuruDigitalLessonController::class)->except(['show']);
+        Route::get('/pembelajaran-digital/{digitalLesson}/progress', [GuruDigitalLessonController::class, 'progress'])->name('pembelajaran-digital.progress');
+
         Route::resource('bank-soal', GuruBankSoalController::class)->except(['show']);
 
         Route::get('/jurnal', [GuruJournalController::class, 'index'])->name('jurnal.index');
@@ -128,7 +135,6 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::delete('/nilai/komponen/{assessmentComponent}', [GuruGradeController::class, 'destroyComponent'])->name('nilai.component.destroy');
         Route::post('/nilai/simpan', [GuruGradeController::class, 'saveScores'])->name('nilai.save');
         Route::get('/nilai/export', [GuruGradeController::class, 'export'])->name('nilai.export');
-
         Route::post('/nilai/publish', [GuruGradeController::class, 'togglePublish'])->name('nilai.publish.toggle');
     });
 });

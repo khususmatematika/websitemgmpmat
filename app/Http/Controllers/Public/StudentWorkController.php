@@ -5,9 +5,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Report;
 use App\Models\StudentWork;
 use App\Models\StudentWorkComment;
-use App\Support\ReportReasons;
+use App\Support\ActiveActor;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class StudentWorkController extends Controller
 {
@@ -18,27 +17,33 @@ class StudentWorkController extends Controller
             ->latest()
             ->get();
 
-        $identifier = $this->identifier($request);
+        $actor = ActiveActor::current();
 
         return view('public.student-works.index', [
             'works' => $works,
-            'identifier' => $identifier,
-            'reasons' => ReportReasons::LIST,
+            'identifier' => $actor['identifier'] ?? 'guest:' . session()->getId(),
+            'reasons' => \App\Support\ReportReasons::LIST,
+            'isLoggedIn' => $actor !== null,
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
-        return view('public.student-works.create');
+        if ($resp = $this->requireLogin($request)) return $resp;
+
+        return view('public.student-works.create', ['actor' => ActiveActor::current()]);
     }
 
     public function store(Request $request)
     {
+        if ($resp = $this->requireLogin($request)) return $resp;
+
         $data = $request->validate([
-            'student_name' => 'required|string|max:100',
             'description' => 'nullable|string|max:1000',
-            'file' => 'required|file|mimes:jpg,jpeg,png,mp4,pdf|max:20480', // 20MB
+            'file' => 'required|file|mimes:jpg,jpeg,png,mp4,pdf|max:20480',
         ]);
+
+        $actor = ActiveActor::current();
 
         $file = $request->file('file');
         $ext = strtolower($file->getClientOriginalExtension());
@@ -53,7 +58,8 @@ class StudentWorkController extends Controller
         $path = $file->store('student-works', 'public');
 
         StudentWork::create([
-            'student_name' => $data['student_name'],
+            'student_name' => $actor['name'],
+            'actor_type' => $actor['type'],
             'description' => $data['description'] ?? null,
             'file_path' => $path,
             'file_type' => $fileType,
@@ -66,45 +72,59 @@ class StudentWorkController extends Controller
 
     public function like(Request $request, StudentWork $studentWork)
     {
-    $identifier = $this->identifier($request);
+        if ($resp = $this->requireLogin($request, true)) return $resp;
 
-    $existing = $studentWork->likes()->where('liker_identifier', $identifier)->first();
+        $identifier = ActiveActor::current()['identifier'];
+        $existing = $studentWork->likes()->where('liker_identifier', $identifier)->first();
 
-    if ($existing) {
-        $existing->delete();
-        $liked = false;
-    } else {
-        $studentWork->likes()->create(['liker_identifier' => $identifier]);
-        $liked = true;
-    }
+        if ($existing) {
+            $existing->delete();
+        } else {
+            $studentWork->likes()->create(['liker_identifier' => $identifier]);
+        }
 
-    if ($request->wantsJson()) {
         return response()->json([
-            'liked' => $liked,
+            'liked' => !$existing,
             'likes_count' => $studentWork->likes()->count(),
         ]);
     }
 
-    return back();
-    }
-
     public function comment(Request $request, StudentWork $studentWork)
     {
-    $data = $request->validate([
-        'commenter_name' => 'required|string|max:100',
-        'content' => 'required|string|max:500',
-        'parent_id' => 'nullable|exists:student_work_comments,id',
-    ]);
+        if ($resp = $this->requireLogin($request)) return $resp;
 
-    $studentWork->comments()->create($data);
+        $data = $request->validate([
+            'content' => 'nullable|string|max:500',
+            'parent_id' => 'nullable|exists:student_work_comments,id',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+        ]);
 
-    return back()->with('status', 'Komentar berhasil dikirim.');
+        if (empty($data['content']) && !$request->hasFile('image')) {
+            return back()->withErrors(['content' => 'Isi komentar atau lampirkan foto.']);
+        }
+
+        $actor = ActiveActor::current();
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('comment-images', 'public');
+        }
+
+        $studentWork->comments()->create([
+            'commenter_name' => $actor['name'],
+            'actor_type' => $actor['type'],
+            'content' => $data['content'] ?? '',
+            'image_path' => $imagePath,
+            'parent_id' => $data['parent_id'] ?? null,
+        ]);
+
+        return back()->with('status', 'Komentar berhasil dikirim.');
     }
 
     public function report(Request $request, StudentWork $studentWork)
     {
         $data = $request->validate([
-            'reason' => 'required|string|in:' . implode(',', ReportReasons::LIST),
+            'reason' => 'required|string|in:' . implode(',', \App\Support\ReportReasons::LIST),
             'reporter_name' => 'nullable|string|max:100',
         ]);
 
@@ -122,7 +142,7 @@ class StudentWorkController extends Controller
     public function reportComment(Request $request, StudentWorkComment $comment)
     {
         $data = $request->validate([
-            'reason' => 'required|string|in:' . implode(',', ReportReasons::LIST),
+            'reason' => 'required|string|in:' . implode(',', \App\Support\ReportReasons::LIST),
             'reporter_name' => 'nullable|string|max:100',
         ]);
 
@@ -137,12 +157,20 @@ class StudentWorkController extends Controller
         return back()->with('status', 'Laporan komentar berhasil dikirim.');
     }
 
-    // Identitas pengunjung berbasis session (bukan akun) — dipakai untuk cegah like berulang
-    protected function identifier(Request $request): string
+    protected function requireLogin(Request $request, bool $forceJson = false)
     {
-        if (!$request->session()->has('student_identifier')) {
-            $request->session()->put('student_identifier', (string) Str::uuid());
+        if (ActiveActor::isLoggedIn()) {
+            return null;
         }
-        return $request->session()->get('student_identifier');
+
+        if ($forceJson || $request->wantsJson()) {
+            return response()->json([
+                'error' => 'login_required',
+                'message' => 'Silakan masuk terlebih dahulu untuk melanjutkan.',
+                'login_url' => route('login.select'),
+            ], 401);
+        }
+
+        return redirect()->route('login.select')->with('error', 'Silakan masuk terlebih dahulu.');
     }
 }

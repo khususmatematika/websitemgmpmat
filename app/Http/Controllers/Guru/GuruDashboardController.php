@@ -3,6 +3,7 @@ namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
 use App\Models\JournalAttendance;
+use App\Models\SchoolClass;
 use App\Models\TeachingJournal;
 use Illuminate\Support\Facades\Auth;
 
@@ -21,7 +22,7 @@ class GuruDashboardController extends Controller
     {
         $teacher = Auth::guard('guru')->user();
 
-        $classes = $teacher->classes()->withCount('students')->get()->unique('id');
+        $classes = $teacher->classes()->withCount('students')->orderBy('classes.name')->get()->unique('id');
         $totalClasses = $classes->count();
         $totalStudents = $classes->sum('students_count');
 

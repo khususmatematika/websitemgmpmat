@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class StudentWorkComment extends Model
 {
-    protected $fillable = ['student_work_id', 'parent_id', 'commenter_name', 'content'];
+    protected $fillable = ['student_work_id', 'parent_id', 'commenter_name', 'content', 'image_path'];
 
     // Hanya komentar induk (bukan balasan) — dipakai untuk list utama
     public function replies(): HasMany

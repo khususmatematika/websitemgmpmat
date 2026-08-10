@@ -151,23 +151,21 @@ const components = @json($components->map(fn($c) => ['id' => $c->id, 'weight' =>
 const attendance = @json($attendancePercent);
 
 function recalcAll() {
+    const totalWeight = components.reduce((sum, c) => sum + parseFloat(c.weight), 0);
+
     document.querySelectorAll('.final-grade').forEach(el => {
         const row = el.dataset.row;
-        let weightedSum = 0, totalWeight = 0;
+        let weightedSum = 0;
 
         components.forEach(c => {
-            let val;
+            let val = 0;
             if (c.is_attendance) {
-                const studentIdInput = document.querySelectorAll(`tr`)[row]?.querySelector('td:first-child');
-                val = null; // dihitung server-side dengan tepat; live calc di sini cukup skip kehadiran untuk estimasi cepat
+                val = parseFloat(attendance[Object.keys(attendance)[row]] ?? 0);
             } else {
                 const input = document.querySelector(`.score-input[data-col="${c.id}"][data-row="${row}"]`);
-                val = input && input.value !== '' ? parseFloat(input.value) : null;
+                val = input && input.value !== '' ? parseFloat(input.value) : 0;
             }
-            if (val !== null && !isNaN(val)) {
-                weightedSum += val * c.weight;
-                totalWeight += parseFloat(c.weight);
-            }
+            weightedSum += val * parseFloat(c.weight);
         });
 
         el.textContent = totalWeight > 0 ? (weightedSum / totalWeight).toFixed(2) : '-';
