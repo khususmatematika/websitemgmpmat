@@ -33,6 +33,16 @@
         </div>
     </div>
 
+   @if ($overallFinal !== null)
+    <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-4 mb-6 flex items-center justify-between">
+        <div>
+            <p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide">Nilai Akhir Keseluruhan</p>
+            <p class="text-[11px] text-on-surface-variant mt-0.5">Rata-rata dari {{ count($results) }} materi</p>
+        </div>
+        <div class="text-2xl font-bold text-blue-600">{{ $overallFinal }}</div>
+    </div>
+    @endif
+
     @if (count($attendanceSummary) > 0)
         <h2 class="font-headline text-lg font-bold text-navy-deep mb-4">Rekap Kehadiran</h2>
         @if (count($attendanceSummary) > 1)
@@ -115,24 +125,21 @@
     <div class="space-y-6">
         @forelse ($results as $r)
         @php
-            $final = $r['final'];
-            $badgeColor = $final === null ? 'bg-surface-container text-on-surface-variant'
-                : ($final >= 85 ? 'bg-status-success/10 text-status-success'
-                : ($final >= 70 ? 'bg-status-warning/10 text-status-warning'
-                : 'bg-error-container text-status-error'));
-        @endphp
-        <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
-            <div class="p-6 pb-4">
-                <div class="flex items-start justify-between gap-4 mb-4">
-                    <div>
-                        <span class="text-xs font-bold text-math-teal uppercase tracking-wide">{{ $r['class'] }}</span>
-                        <h2 class="font-headline text-lg font-bold text-navy-deep">{{ $r['topic'] }}</h2>
+            
+                $final = $r['final'];
+            @endphp
+            <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden">
+                <div class="p-6 pb-4">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div>
+                            <span class="text-xs font-bold text-math-teal uppercase tracking-wide">{{ $r['class'] }}</span>
+                            <h2 class="font-headline text-lg font-bold text-navy-deep">{{ $r['topic'] }}</h2>
+                        </div>
+                        <div class="text-center px-4 py-2 rounded-lg bg-blue-50 shrink-0">
+                            <p class="text-[10px] font-bold uppercase text-blue-600">Nilai Akhir</p>
+                            <p class="text-2xl font-bold text-blue-600">{{ $final ?? '-' }}</p>
+                        </div>
                     </div>
-                    <div class="text-center px-4 py-2 rounded-lg {{ $badgeColor }} shrink-0">
-                        <p class="text-[10px] font-bold uppercase">Nilai Akhir</p>
-                        <p class="text-2xl font-bold">{{ $final ?? '-' }}</p>
-                    </div>
-                </div>
 
                 {{-- Rincian komponen --}}
                 <div class="space-y-1 mb-5">
@@ -142,6 +149,8 @@
                         <span class="font-bold text-navy-deep">{{ $c['score'] ?? '-' }}</span>
                     </div>
                     @endforeach
+
+                    
                 </div>
 
                 {{-- Statistik Kelas --}}

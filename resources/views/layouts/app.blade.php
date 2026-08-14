@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('favicon.png') }}">
     <title>@yield('title', 'SMAN 1 Turen Math Portal')</title>
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -131,7 +133,7 @@
                 </a>
                 @endforeach
             </nav>
-            <a href="{{ route('login.select') }}" class="flex items-center gap-2 bg-navy-deep text-white px-3 md:px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-all shrink-0">
+            <a href="{{ route('login') }}" class="flex items-center gap-2 bg-navy-deep text-white px-3 md:px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-all shrink-0">
                 <span class="material-symbols-outlined text-[18px]">account_circle</span>
                 <span class="hidden sm:inline">Masuk</span>
             </a>
@@ -208,10 +210,10 @@
 
     @unless (request()->routeIs('guru.*') || request()->routeIs('admin.*'))
     <footer class="bg-navy-deep text-white pt-12 md:pt-16 pb-8 px-4 md:px-margin-desktop mt-20">
-        <div class="max-w-container-max mx-auto text-center text-white/60 text-sm">
-            &copy; {{ date('Y') }} SMAN 1 Turen Mathematics Portal. All rights reserved.
-        </div>
-    </footer>
+    <div class="max-w-container-max mx-auto text-center text-white/60 text-sm">
+        &copy; MGMP Matematika SMA Negeri 1 Turen 2026.
+    </div>
+</footer>
     @endunless
 
     {{-- Bottom Navigation Bar (mobile only, pengunjung publik) --}}
@@ -234,7 +236,7 @@
                 <span class="material-symbols-outlined text-[22px]">history_edu</span>
                 <span class="text-[10px] font-medium">Latihan</span>
             </a>
-            <a href="{{ route('login.select') }}" class="flex items-center gap-2 bg-navy-deep text-white px-3 md:px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-all shrink-0">
+            <a href="{{ route('login') }}" class="flex items-center gap-2 bg-navy-deep text-white px-3 md:px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-all shrink-0">
                 <span class="material-symbols-outlined text-[18px]">account_circle</span>
                 <span class="hidden sm:inline">Masuk</span>
             </a>

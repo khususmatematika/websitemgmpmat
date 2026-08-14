@@ -96,6 +96,11 @@ class GuruGradeController extends Controller
 
             $isPublished = \App\Models\GradePublication::isPublished($classId, $materialTopicId);
 
+        $adjustments = \App\Models\ScoreAdjustment::where('class_id', $classId)
+        ->where('material_topic_id', $materialTopicId)
+        ->get()
+        ->keyBy('student_id');
+
         return view('guru.nilai.manage', [
             'class' => $class,
             'topic' => $topic,
@@ -155,11 +160,12 @@ class GuruGradeController extends Controller
             'class_id' => 'required|exists:classes,id',
             'material_topic_id' => 'required|exists:material_topics,id',
             'scores' => 'nullable|array',
+            'adjustments' => 'nullable|array',
         ]);
 
         foreach ($request->input('scores', []) as $componentId => $studentScores) {
             $component = AssessmentComponent::find($componentId);
-            if (!$component || $component->is_attendance) continue; // kehadiran tidak diinput manual
+            if (!$component || $component->is_attendance) continue;
 
             foreach ($studentScores as $studentId => $value) {
                 if ($value === '' || $value === null) continue;
@@ -171,6 +177,20 @@ class GuruGradeController extends Controller
             }
         }
 
+        foreach ($request->input('adjustments', []) as $studentId => $val) {
+            \App\Models\ScoreAdjustment::updateOrCreate(
+                [
+                    'class_id' => $data['class_id'],
+                    'material_topic_id' => $data['material_topic_id'],
+                    'student_id' => $studentId,
+                ],
+                [
+                    'bonus' => $val['bonus'] ?? 0,
+                    'deduction' => $val['deduction'] ?? 0,
+                ]
+            );
+        }
+
         return redirect()->route('guru.nilai.manage', [
             'class_id' => $data['class_id'],
             'material_topic_id' => $data['material_topic_id'],
@@ -178,7 +198,7 @@ class GuruGradeController extends Controller
     }
 
     public function export(Request $request)
-{
+    {
     $teacherId = Auth::guard('guru')->id();
     $classId = $request->get('class_id');
     $materialTopicId = $request->get('material_topic_id');
@@ -205,6 +225,9 @@ class GuruGradeController extends Controller
         $sheet->setCellValue([$col, 1], $c->name . ' (' . $c->weight . '%)');
         $col++;
     }
+    
+    $sheet->setCellValue([$col++, 1], 'Tambahan');
+    $sheet->setCellValue([$col++, 1], 'Pengurangan');
     $sheet->setCellValue([$col, 1], 'Nilai Akhir');
 
     // Baris data
@@ -224,7 +247,17 @@ class GuruGradeController extends Controller
             $weightedSum += ($score ?? 0) * $c->weight; // komponen kosong dihitung 0
         }
 
-        $final = $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : '-';
+        $adjustment = \App\Models\ScoreAdjustment::where('class_id', $classId)
+        ->where('material_topic_id', $materialTopicId)
+        ->where('student_id', $student->id)->first();
+
+        $bonus = $adjustment->bonus ?? 0;
+        $deduction = $adjustment->deduction ?? 0;
+
+        $sheet->setCellValue([$col++, $row], $bonus);
+        $sheet->setCellValue([$col++, $row], $deduction);
+
+        $final = $totalWeight > 0 ? round(($weightedSum / $totalWeight) + $bonus - $deduction, 2) : '-';
         $sheet->setCellValue([$col, $row], $final);
         $row++;
     }
@@ -237,20 +270,65 @@ class GuruGradeController extends Controller
     }
 
     public function togglePublish(Request $request)
-{
-    $data = $request->validate([
-        'class_id' => 'required|exists:classes,id',
-        'material_topic_id' => 'required|exists:material_topics,id',
-    ]);
+    {
+        $data = $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'material_topic_id' => 'required|exists:material_topics,id',
+        ]);
 
-    $pub = \App\Models\GradePublication::firstOrCreate(
-        ['class_id' => $data['class_id'], 'material_topic_id' => $data['material_topic_id']],
-        ['teacher_id' => Auth::guard('guru')->id(), 'is_published' => false]
-    );
+        $pub = \App\Models\GradePublication::firstOrCreate(
+            ['class_id' => $data['class_id'], 'material_topic_id' => $data['material_topic_id']],
+            ['teacher_id' => Auth::guard('guru')->id(), 'is_published' => false]
+        );
 
-    $pub->update(['is_published' => !$pub->is_published]);
+        $pub->update(['is_published' => !$pub->is_published]);
 
-    return redirect()->route('guru.nilai.manage', $data)
-        ->with('status', $pub->is_published ? 'Nilai berhasil diaktifkan untuk dilihat siswa.' : 'Nilai disembunyikan dari siswa.');
-}
+        return redirect()->route('guru.nilai.manage', $data)
+            ->with('status', $pub->is_published ? 'Nilai berhasil diaktifkan untuk dilihat siswa.' : 'Nilai disembunyikan dari siswa.');
+    }
+
+    public function saveAdjustments(Request $request)
+    {
+        $data = $request->validate([
+            'class_id' => 'required|exists:classes,id',
+            'material_topic_id' => 'required|exists:material_topics,id',
+            'adjustments' => 'nullable|array',
+        ]);
+
+        foreach ($request->input('adjustments', []) as $studentId => $val) {
+            \App\Models\ScoreAdjustment::updateOrCreate(
+                [
+                    'class_id' => $data['class_id'],
+                    'material_topic_id' => $data['material_topic_id'],
+                    'student_id' => $studentId,
+                ],
+                [
+                    'bonus' => $val['bonus'] ?? 0,
+                    'deduction' => $val['deduction'] ?? 0,
+                ]
+            );
+        }
+
+        return redirect()->route('guru.nilai.manage', [
+            'class_id' => $data['class_id'],
+            'material_topic_id' => $data['material_topic_id'],
+        ])->with('status', 'Nilai tambahan/pengurangan berhasil disimpan.');
+    }
+
+    public function updateComponent(Request $request, AssessmentComponent $assessmentComponent)
+    {
+        abort_if($assessmentComponent->teacher_id !== Auth::guard('guru')->id(), 403);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'weight' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $assessmentComponent->update($data);
+
+        return redirect()->route('guru.nilai.manage', [
+            'class_id' => $assessmentComponent->class_id,
+            'material_topic_id' => $assessmentComponent->material_topic_id,
+        ])->with('status', 'Bobot penilaian berhasil diperbarui.');
+    }
 }

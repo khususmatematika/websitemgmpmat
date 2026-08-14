@@ -106,6 +106,7 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::put('/profil', [GuruProfileController::class, 'update'])->name('profile.update');
 
         Route::resource('materi', GuruMaterialController::class)->except(['show']);
+        Route::post('/materi/{materi}/cover', [GuruMaterialController::class, 'saveCover'])->name('materi.cover.save');
 
         Route::resource('pembelajaran-digital', GuruDigitalLessonController::class)->except(['show']);
         Route::get('/pembelajaran-digital/{digitalLesson}/progress', [GuruDigitalLessonController::class, 'progress'])->name('pembelajaran-digital.progress');
@@ -136,6 +137,10 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::post('/nilai/simpan', [GuruGradeController::class, 'saveScores'])->name('nilai.save');
         Route::get('/nilai/export', [GuruGradeController::class, 'export'])->name('nilai.export');
         Route::post('/nilai/publish', [GuruGradeController::class, 'togglePublish'])->name('nilai.publish.toggle');
+
+        Route::put('/nilai/komponen/{assessmentComponent}', [GuruGradeController::class, 'updateComponent'])->name('nilai.component.update');
+
+        Route::post('/nilai/adjustment', [GuruGradeController::class, 'saveAdjustments'])->name('nilai.adjustment.save');
     });
 });
 
@@ -158,6 +163,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::resource('kelas', AdminClassController::class)->except(['show'])->parameters(['kelas' => 'kelas']);
 
         Route::resource('materi', AdminMaterialController::class)->except(['show']);
+        Route::post('/materi/{materi}/cover', [AdminMaterialController::class, 'saveCover'])->name('materi.cover.save');
 
         Route::get('/topik-materi', [AdminMaterialTopicController::class, 'index'])->name('topik-materi.index');
         Route::post('/topik-materi', [AdminMaterialTopicController::class, 'store'])->name('topik-materi.store');

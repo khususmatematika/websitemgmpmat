@@ -13,26 +13,60 @@ use Illuminate\Support\Str;
 class LatihanController extends Controller
 {
     public function create(Request $request)
-{
-    $identifier = $this->identifier($request);
-    $remaining = AiUsageLog::remaining($identifier, 'latihan', 3);
+    {
+        if (!\App\Support\ActiveActor::isLoggedIn()) {
+            return redirect()->route('login')->with('error', 'Silakan masuk terlebih dahulu untuk mengakses Latihan.');
+        }
 
-    return view('public.latihan.create', [
-        'jenjangList' => MathTopics::JENJANG,
-        'remaining' => $remaining,
-    ]);
-}
+        $actor = \App\Support\ActiveActor::current();
+        $identifier = $actor['identifier'];
+        $remaining = AiUsageLog::remaining($identifier, 'latihan', 3);
+
+        $studentClasses = collect();
+        if ($actor['type'] === 'student') {
+            $student = \App\Models\Student::with('classes')->find($actor['id']);
+            $studentClasses = $student ? $student->classes : collect();
+        }
+
+        // Untuk tiap kelas siswa, siapkan kode jenjang + daftar topik agar JS bisa langsung switch tanpa request baru
+        $classTopicsMap = [];
+        foreach ($studentClasses as $c) {
+            $fase = $c->fase ?: ($c->jenjang === 'X' ? 'E' : 'F');
+            $jenjangCode = "{$c->jenjang}-{$fase}";
+            $topics = \App\Models\MaterialTopic::where('jenjang', $jenjangCode)
+                ->orderBy('semester')->orderBy('order_index')->pluck('title');
+
+            $classTopicsMap[$c->id] = [
+                'name' => $c->name,
+                'jenjang' => $jenjangCode,
+                'topics' => $topics,
+            ];
+        }
+
+        return view('public.latihan.create', [
+            'jenjangList' => MathTopics::JENJANG,
+            'remaining' => $remaining,
+            'actor' => $actor,
+            'studentClasses' => $studentClasses,
+            'classTopicsMap' => $classTopicsMap,
+        ]);
+    }
 
     public function start(Request $request, GeminiService $gemini)
     {
+        if (!\App\Support\ActiveActor::isLoggedIn()) {
+            return redirect()->route('login')->with('error', 'Silakan masuk terlebih dahulu.');
+        }
+
+        $actor = \App\Support\ActiveActor::current();
+
         $data = $request->validate([
-            'student_name' => 'required|string|max:100',
-            'class_name' => 'required|string|max:50',
+            'class_name' => 'required|string|max:100',
             'jenjang' => 'required|in:X-E,XI-F,XII-F,XI-F+,XII-F+',
             'topic' => 'required|string',
         ]);
 
-        $identifier = $this->identifier($request);
+        $identifier = $actor['identifier'];
 
         if (!AiUsageLog::attempt($identifier, 'latihan', 3)) {
             return back()->with('error', 'Batas latihan hari ini sudah tercapai (3x/hari). Silakan coba lagi besok.')->withInput();
@@ -43,7 +77,7 @@ class LatihanController extends Controller
             $questions = $gemini->generateQuestions($jenjangLabel, $data['topic'], 10);
 
             $session = QuizSession::create([
-                'student_name' => $data['student_name'],
+                'student_name' => $actor['name'],
                 'class_name' => $data['class_name'],
                 'jenjang' => $data['jenjang'],
                 'topic' => $data['topic'],

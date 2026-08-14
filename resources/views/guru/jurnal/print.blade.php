@@ -7,11 +7,23 @@
         @page { margin: 20px 30px; }
         body { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: #1a1b1e; }
 
-        .kop-table { width: 100%; border-bottom: 3px double #000; padding-bottom: 6px; margin-bottom: 16px; }
-        .kop-table td { vertical-align: middle; }
-        .kop-logo { width: 75px; }
+        /* Kop surat: logo absolute di kiri, teks rata tengah penuh (logo tidak mendorong teks) */
+        .kop-wrapper {
+            position: relative;
+            text-align: center;
+            border-bottom: 3px double #000;
+            padding-bottom: 8px;
+            margin-bottom: 16px;
+            min-height: 75px;
+        }
+        .kop-logo {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 70px;
+        }
         .kop-logo img { width: 70px; }
-        .kop-text { text-align: center; }
+        .kop-text-line { margin: 1px 0; }
 
         h2.title { text-align: center; font-size: 14px; margin: 16px 0 4px 0; text-decoration: underline; }
         p.subtitle { text-align: center; margin: 0 0 16px 0; font-size: 11px; }
@@ -27,6 +39,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 8px;
+            table-layout: fixed;
         }
         table.journal th, table.journal td {
             border: 1px solid #999;
@@ -50,25 +63,22 @@
 </head>
 <body>
 
-    <table class="kop-table">
-        <tr>
-            @if ($letterhead->logo_path)
-            <td class="kop-logo">
-                <img src="{{ storage_path('app/public/' . $letterhead->logo_path) }}">
-            </td>
+    <div class="kop-wrapper">
+        @if ($letterhead->logo_path)
+        <div class="kop-logo">
+            <img src="{{ storage_path('app/public/' . $letterhead->logo_path) }}">
+        </div>
+        @endif
+
+        @for ($i = 1; $i <= 5; $i++)
+            @php $text = $letterhead->{'line'.$i.'_text'}; @endphp
+            @if ($text)
+            <div class="kop-text-line" style="font-size: {{ $letterhead->{'line'.$i.'_size'} }}px; font-weight: {{ $letterhead->{'line'.$i.'_bold'} ? 'bold' : 'normal' }};">
+                {{ $text }}
+            </div>
             @endif
-            <td class="kop-text">
-                @for ($i = 1; $i <= 5; $i++)
-                    @php $text = $letterhead->{'line'.$i.'_text'}; @endphp
-                    @if ($text)
-                    <div style="font-size: {{ $letterhead->{'line'.$i.'_size'} }}px; font-weight: {{ $letterhead->{'line'.$i.'_bold'} ? 'bold' : 'normal' }}; margin: 1px 0;">
-                        {{ $text }}
-                    </div>
-                    @endif
-                @endfor
-            </td>
-        </tr>
-    </table>
+        @endfor
+    </div>
 
     <h2 class="title">JURNAL MENGAJAR</h2>
     <p class="subtitle">
@@ -99,20 +109,20 @@
             <thead>
                 <tr>
                     <th style="width: 4%;">No</th>
-                    <th style="width: 11%;">Tanggal</th>
-                    <th style="width: 20%;">Materi</th>
-                    <th style="width: 40%;">Kegiatan</th>
-                    <th style="width: 25%;">Siswa Tidak Hadir</th>
+                    <th style="width: 15%;">Tanggal</th>
+                    <th style="width: 15%;">Materi</th>
+                    <th style="width: 15%;">Kegiatan</th>
+                    <th style="width: 51%;">Siswa Tidak Hadir</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($group['journals'] as $i => $j)
                 <tr>
                     <td class="center" style="width: 4%;">{{ $i + 1 }}</td>
-                    <td class="center" style="width: 11%;">{{ $j->journal_date->translatedFormat('d F Y') }}</td>
-                    <td style="width: 20%;">{{ $j->materi ?? '-' }}</td>
-                    <td style="width: 40%;">{{ $j->kegiatan ?? '-' }}</td>
-                    <td class="attendance-list" style="width: 25%;">
+                    <td class="center" style="width: 15%;">{{ $j->journal_date->translatedFormat('d F Y') }}</td>
+                    <td style="width: 15%;">{{ $j->materi ?? '-' }}</td>
+                    <td style="width: 15%;">{{ $j->kegiatan ?? '-' }}</td>
+                    <td class="attendance-list" style="width: 51%;">
                         @php
                             $notPresent = $j->attendances->filter(fn($a) => $a->status !== 'Hadir');
                         @endphp

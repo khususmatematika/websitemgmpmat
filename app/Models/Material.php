@@ -10,6 +10,7 @@ class Material extends Model
         'jenjang',
         'semester',
         'file_path',
+        'cover_path',
         'file_size',
         'uploaded_by_type',
         'uploaded_by_id',
@@ -21,5 +22,13 @@ class Material extends Model
         return $bytes > 1048576
             ? round($bytes / 1048576, 1) . ' MB'
             : round($bytes / 1024, 1) . ' KB';
+    }
+
+    public function getUploaderNameAttribute(): string
+    {
+        if ($this->uploaded_by_type === 'teacher') {
+            return Teacher::find($this->uploaded_by_id)?->name ?? 'Guru';
+        }
+        return Admin::find($this->uploaded_by_id)?->name ?? 'Admin';
     }
 }

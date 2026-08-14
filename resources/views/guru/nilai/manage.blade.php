@@ -54,7 +54,11 @@
     <div class="flex flex-wrap gap-2">
         @foreach ($components as $c)
         <span class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full text-xs">
-            {{ $c->name }} ({{ $c->weight }}%) {{ $c->is_attendance ? '— otomatis' : '' }}
+            <button type="button" onclick="openEditComponent({{ $c->id }}, '{{ addslashes($c->name) }}', {{ $c->weight }}, {{ $c->is_attendance ? 'true' : 'false' }})"
+                    class="hover:underline {{ $c->is_attendance ? 'cursor-not-allowed opacity-70' : '' }}"
+                    {{ $c->is_attendance ? 'disabled title="Bobot kehadiran otomatis, tidak bisa diubah manual"' : '' }}>
+                {{ $c->name }} ({{ $c->weight }}%) {{ $c->is_attendance ? '— otomatis' : '' }}
+            </button>
             <form action="{{ route('guru.nilai.component.destroy', $c) }}" method="POST" onsubmit="return confirm('Hapus jenis penilaian ini? Nilai yang sudah diinput ikut terhapus.')">
                 @csrf @method('DELETE')
                 <button class="text-status-error"><span class="material-symbols-outlined text-[14px] align-middle">close</span></button>
@@ -62,6 +66,44 @@
         </span>
         @endforeach
     </div>
+
+    {{-- Modal Edit Bobot --}}
+    <div id="edit-component-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl w-full max-w-sm p-6">
+            <h3 class="font-headline text-lg font-bold text-navy-deep mb-4">Edit Jenis Penilaian</h3>
+            <form id="edit-component-form" method="POST">
+                @csrf
+                @method('PUT')
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-sm font-medium">Nama</label>
+                        <input type="text" name="name" id="edit-name" required class="mt-1 w-full rounded-md border-outline-variant text-sm">
+                    </div>
+                    <div>
+                        <label class="text-sm font-medium">Bobot (%)</label>
+                        <input type="number" name="weight" id="edit-weight" required min="0" max="100" step="0.01" class="mt-1 w-full rounded-md border-outline-variant text-sm">
+                    </div>
+                </div>
+                <div class="flex gap-2 mt-6">
+                    <button type="button" onclick="closeEditComponent()" class="flex-1 py-2 border border-outline-variant rounded-md text-sm font-bold text-on-surface-variant">Batal</button>
+                    <button type="submit" class="flex-1 py-2 bg-math-teal text-white rounded-md text-sm font-bold">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+    function openEditComponent(id, name, weight, isAttendance) {
+        if (isAttendance) return;
+        document.getElementById('edit-component-form').action = `/guru/nilai/komponen/${id}`;
+        document.getElementById('edit-name').value = name;
+        document.getElementById('edit-weight').value = weight;
+        document.getElementById('edit-component-modal').classList.remove('hidden');
+    }
+    function closeEditComponent() {
+        document.getElementById('edit-component-modal').classList.add('hidden');
+    }
+    </script>
 </div>
 
 {{-- Tabel Input Nilai --}}
@@ -85,6 +127,8 @@
                         @foreach ($components as $c)
                         <th class="p-3 text-center">{{ $c->name }}<br><span class="text-[10px]">({{ $c->weight }}%)</span></th>
                         @endforeach
+                        <th class="p-3 text-center bg-status-success/5">Tambahan</th>
+                        <th class="p-3 text-center bg-error-container/20">Pengurangan</th>
                         <th class="p-3 text-center">Nilai Akhir</th>
                     </tr>
                 </thead>
@@ -110,6 +154,20 @@
                             @endif
                         </td>
                         @endforeach
+                        <td class="p-2 text-center">
+                            <input type="number" step="0.01" min="0"
+                                name="adjustments[{{ $student->id }}][bonus]"
+                                value="{{ $adjustments[$student->id]->bonus ?? 0 }}"
+                                data-row="{{ $rowIndex }}" data-type="bonus"
+                                class="adjustment-input w-16 text-center rounded-md border-status-success/40 text-sm text-status-success font-bold bg-status-success/5">
+                        </td>
+                        <td class="p-2 text-center">
+                            <input type="number" step="0.01" min="0"
+                                name="adjustments[{{ $student->id }}][deduction]"
+                                value="{{ $adjustments[$student->id]->deduction ?? 0 }}"
+                                data-row="{{ $rowIndex }}" data-type="deduction"
+                                class="adjustment-input w-16 text-center rounded-md border-status-error/40 text-sm text-status-error font-bold bg-error-container/10">
+                        </td>
                         <td class="p-2 text-center font-bold text-navy-deep final-grade" data-row="{{ $rowIndex }}">-</td>
                     </tr>
                     @endforeach
@@ -168,9 +226,19 @@ function recalcAll() {
             weightedSum += val * parseFloat(c.weight);
         });
 
-        el.textContent = totalWeight > 0 ? (weightedSum / totalWeight).toFixed(2) : '-';
+        const bonusInput = document.querySelector(`.adjustment-input[data-type="bonus"][data-row="${row}"]`);
+        const deductionInput = document.querySelector(`.adjustment-input[data-type="deduction"][data-row="${row}"]`);
+        const bonus = bonusInput ? parseFloat(bonusInput.value || 0) : 0;
+        const deduction = deductionInput ? parseFloat(deductionInput.value || 0) : 0;
+
+        const base = totalWeight > 0 ? (weightedSum / totalWeight) : 0;
+        el.textContent = (base + bonus - deduction).toFixed(2);
     });
 }
+
+document.querySelectorAll('.adjustment-input').forEach(input => {
+    input.addEventListener('input', recalcAll);
+});
 
 document.querySelectorAll('.score-input').forEach(input => {
     input.addEventListener('input', recalcAll);

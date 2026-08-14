@@ -287,8 +287,8 @@ protected function dayNameFromDate(string $date): string
         $filename = 'Jurnal-' . str_replace(' ', '-', $class->name) . '-' . $month . '.pdf';
     } else {
         // Cetak SEMUA kelas guru ini dalam bulan tersebut
-        $myClasses = SchoolClass::whereHas('teachers', fn($q) => $q->where('teacher_id', $teacherId))
-            ->orderBy('name')->get();
+       $myClasses = SchoolClass::whereHas('teachers', fn($q) => $q->where('teacher_id', $teacherId))
+        ->orderBy('name')->get();
 
         $groupedByClass = $myClasses->map(function ($class) use ($teacherId, $month) {
             $journals = TeachingJournal::with('attendances.student')

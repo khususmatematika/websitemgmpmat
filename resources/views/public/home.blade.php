@@ -91,21 +91,39 @@
         ];
     @endphp
 
-    <div class="flex md:grid md:grid-cols-4 gap-4 overflow-x-auto md:overflow-visible pb-4 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0">
-        @foreach ($features as $f)
-        <a href="{{ $f['url'] }}"
-           class="group shrink-0 w-[68%] xs:w-60 md:w-auto snap-start bg-white rounded-2xl border border-outline-variant/30 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-6 flex flex-col">
-            <div class="w-14 h-14 rounded-2xl bg-{{ $f['color'] }}/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <span class="material-symbols-outlined text-{{ $f['color'] }} text-2xl">{{ $f['icon'] }}</span>
-            </div>
-            <h3 class="font-headline text-navy-deep font-bold mb-1">{{ $f['label'] }}</h3>
-            <p class="text-on-surface-variant text-xs mb-4 flex-1">{{ $f['desc'] }}</p>
-            <span class="flex items-center gap-1 text-{{ $f['color'] }} text-xs font-bold group-hover:gap-2 transition-all">
-                Buka <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </span>
-        </a>
-        @endforeach
-    </div>
+    <div class="flex md:flex md:flex-row gap-3 md:gap-3 overflow-x-auto md:overflow-visible pb-4 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0 feature-row">
+    @foreach ($features as $f)
+    <a href="{{ $f['url'] }}"
+       class="feature-card group shrink-0 w-[68%] xs:w-60 md:w-auto md:flex-1 snap-start bg-white rounded-2xl border border-outline-variant/30 shadow-sm hover:shadow-2xl transition-all duration-500 ease-out p-5 md:p-6 flex flex-col overflow-hidden relative">
+        <div class="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-{{ $f['color'] }}/10 flex items-center justify-center mb-3 md:mb-4 transition-transform duration-500 group-hover:scale-110">
+            <span class="material-symbols-outlined text-{{ $f['color'] }} text-xl md:text-2xl">{{ $f['icon'] }}</span>
+        </div>
+        <h3 class="font-headline text-navy-deep font-bold mb-1 text-sm md:text-base transition-all">{{ $f['label'] }}</h3>
+        <p class="text-on-surface-variant text-xs mb-4 flex-1 feature-desc opacity-70 md:opacity-0 md:group-hover:opacity-100 md:max-h-0 md:group-hover:max-h-20 transition-all duration-500 overflow-hidden">{{ $f['desc'] }}</p>
+        <span class="flex items-center gap-1 text-{{ $f['color'] }} text-xs font-bold group-hover:gap-2 transition-all">
+            Buka <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+        </span>
+    </a>
+    @endforeach
+</div>
+
+<style>
+    @media (min-width: 768px) {
+        .feature-row { align-items: stretch; perspective: 1000px; }
+        .feature-card {
+            flex: 1;
+            transform-style: preserve-3d;
+            transition: transform 0.15s ease-out, flex 0.5s ease, opacity 0.5s ease, filter 0.5s ease, box-shadow 0.3s ease;
+        }
+        .feature-row:hover .feature-card { flex: 0.85; opacity: 0.75; filter: saturate(0.7); }
+        .feature-row .feature-card:hover {
+            flex: 2.2 !important;
+            opacity: 1 !important;
+            filter: saturate(1) !important;
+            box-shadow: 0 25px 50px -12px rgba(15, 37, 68, 0.25);
+        }
+    }
+</style>
 </section>
 
 {{-- Section highlight kedua: Nilai & Kehadiran, ajakan login siswa --}}
@@ -126,6 +144,29 @@
         </div>
     </div>
 </section>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const cards = document.querySelectorAll('.feature-card');
+    if (window.innerWidth < 768) return; // tilt hanya aktif desktop
+
+    cards.forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = ((y - centerY) / centerY) * -6;
+            const rotateY = ((x - centerX) / centerX) * 6;
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateY(-4px)`;
+        });
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = '';
+        });
+    });
+});
+</script>
 @endsection
 
 @push('scripts')

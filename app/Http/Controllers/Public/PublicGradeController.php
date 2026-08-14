@@ -17,7 +17,7 @@ class PublicGradeController extends Controller
         if (session()->has('student_portal_id')) {
             return redirect()->route('nilai.show');
         }
-        return view('public.nilai.login');
+        return redirect()->route('login');
     }
 
     public function login(Request $request)
@@ -76,7 +76,7 @@ class PublicGradeController extends Controller
                 $journalIds = TeachingJournal::where('class_id', $class->id)->pluck('id');
                 $rows = [];
                 $weightedSum = 0;
-                $totalWeight = 0;
+                $totalWeight = $comps->sum('weight');
 
                 foreach ($comps as $c) {
                     if ($c->is_attendance) {
@@ -96,22 +96,27 @@ class PublicGradeController extends Controller
 
                     $rows[] = ['name' => $c->name, 'weight' => $c->weight, 'score' => $score];
 
-                    if ($score !== null) {
-                        $weightedSum += $score * $c->weight;
-                        $totalWeight += $c->weight;
-                    }
+                    $weightedSum += ($score ?? 0) * $c->weight;
                 }
 
-                $finalScore = $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null;
+                $adjustment = \App\Models\ScoreAdjustment::where('class_id', $class->id)
+                    ->where('material_topic_id', $topicId)
+                    ->where('student_id', $student->id)->first();
+                $bonus = $adjustment->bonus ?? 0;
+                $deduction = $adjustment->deduction ?? 0;
+
+                $baseScore = $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null;
+                $finalScore = $baseScore !== null ? round($baseScore + $bonus - $deduction, 2) : null;
 
                 // ===== STATISTIK KELAS untuk kombinasi kelas + materi ini =====
                 $classStudentIds = $class->students()->pluck('students.id');
                 $allFinalScores = [];
 
-                foreach ($classStudentIds as $sid) {
-                    $wSum = 0;
-                    $wTotal = 0;
-                    foreach ($comps as $c) {
+                $fixedTotalWeight = $comps->sum('weight');
+
+                    foreach ($classStudentIds as $sid) {
+                        $wSum = 0;
+                        foreach ($comps as $c) {
                         if ($c->is_attendance) {
                             $counts2 = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
                                 ->where('student_id', $sid)
@@ -123,15 +128,12 @@ class PublicGradeController extends Controller
                             $s = StudentScore::where('assessment_component_id', $c->id)
                                 ->where('student_id', $sid)->value('score');
                         }
-                        if ($s !== null) {
-                            $wSum += $s * $c->weight;
-                            $wTotal += $c->weight;
+                        $wSum += ($s ?? 0) * $c->weight;
                         }
-                    }
-                    if ($wTotal > 0) {
-                        $allFinalScores[] = round($wSum / $wTotal, 2);
-                    }
-                }
+                        if ($fixedTotalWeight > 0) {
+                            $allFinalScores[] = round($wSum / $fixedTotalWeight, 2);
+                        }
+}
 
                 $statistics = [
                     'count' => count($allFinalScores),
@@ -146,7 +148,10 @@ class PublicGradeController extends Controller
                     'topic' => $topic->title,
                     'topic_id' => $topic->id,
                     'components' => $rows,
+                    'base' => $baseScore,
                     'final' => $finalScore,
+                    'bonus' => $bonus,
+                    'deduction' => $deduction,
                     'statistics' => $statistics,
                     'is_class_table_published' => \App\Models\GradePublication::isPublished($class->id, $topicId),
                 ];
@@ -199,10 +204,14 @@ class PublicGradeController extends Controller
             ];
         }
 
+        $validFinals = collect($results)->pluck('final')->filter(fn($v) => $v !== null);
+        $overallFinal = $validFinals->count() > 0 ? round($validFinals->avg(), 2) : null;
+
         return view('public.nilai.show', [
             'student' => $student,
             'results' => $results,
             'attendanceSummary' => $attendanceSummary,
+            'overallFinal' => $overallFinal,
         ]);
     }
 
@@ -240,10 +249,10 @@ class PublicGradeController extends Controller
         return redirect()->route('nilai.show')->with('status', 'Password berhasil diperbarui.');
     }
 
-    public function showClassTable($classId, $topicId)
+   public function showClassTable($classId, $topicId)
     {
-        if (!session()->has('student_portal_id')) {
-            return redirect()->route('nilai.login');
+        if (!\App\Support\ActiveActor::isLoggedIn()) {
+            return redirect()->route('login');
         }
 
         $isPublished = \App\Models\GradePublication::isPublished($classId, $topicId);
@@ -257,12 +266,17 @@ class PublicGradeController extends Controller
             ->orderBy('order_index')->get();
 
         $journalIds = TeachingJournal::where('class_id', $classId)->pluck('id');
+        $totalWeight = $components->sum('weight');
+
+        $actor = \App\Support\ActiveActor::current();
+        $myId = $actor['type'] === 'student' ? $actor['id'] : null;
 
         $rows = [];
+        $allFinals = [];
+
         foreach ($class->students as $student) {
             $scores = [];
             $weightedSum = 0;
-            $totalWeight = 0;
 
             foreach ($components as $c) {
                 if ($c->is_attendance) {
@@ -278,25 +292,41 @@ class PublicGradeController extends Controller
                 }
 
                 $scores[] = $score;
-                if ($score !== null) {
-                    $weightedSum += $score * $c->weight;
-                    $totalWeight += $c->weight;
-                }
+                $weightedSum += ($score ?? 0) * $c->weight;
+            }
+
+            $adjustment = \App\Models\ScoreAdjustment::where('class_id', $classId)
+                ->where('material_topic_id', $topicId)
+                ->where('student_id', $student->id)->first();
+            $bonus = $adjustment->bonus ?? 0;
+            $deduction = $adjustment->deduction ?? 0;
+
+            $base = $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null;
+            $final = $base !== null ? round($base + $bonus - $deduction, 2) : null;
+
+            if ($final !== null) {
+                $allFinals[] = $final;
             }
 
             $rows[] = [
                 'name' => $student->name,
                 'scores' => $scores,
-                'final' => $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null,
-                'is_me' => $student->id === session('student_portal_id'),
+                'base' => $base,
+                'bonus' => $bonus,
+                'deduction' => $deduction,
+                'final' => $final,
+                'is_me' => $student->id === $myId,
             ];
         }
+
+        $classOverallAverage = count($allFinals) > 0 ? round(array_sum($allFinals) / count($allFinals), 2) : null;
 
         return view('public.nilai.class-table', [
             'class' => $class,
             'topic' => $topic,
             'components' => $components,
             'rows' => $rows,
+            'classOverallAverage' => $classOverallAverage,
         ]);
     }
 
