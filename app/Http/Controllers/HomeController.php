@@ -25,6 +25,12 @@ class HomeController extends Controller
         $visitorToday = VisitorLog::where('visit_date', $today)->count();
         $visitorTotal = VisitorLog::count();
 
-        return view('public.home', compact('visitorToday', 'visitorTotal'));
+        $recentWorks = \App\Models\StudentWork::where('status', 'approved')
+        ->withCount('likes')
+        ->latest()
+        ->take(4)
+        ->get();
+
+        return view('public.home', compact('visitorToday', 'visitorTotal', 'recentWorks'));
     }
 }

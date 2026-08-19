@@ -87,7 +87,7 @@ class PublicGradeController extends Controller
                             ->pluck('total', 'status');
                         $hadir = (int) ($counts['Hadir'] ?? 0);
                         $total = array_sum($counts->toArray());
-                        $score = $total > 0 ? round(($hadir / $total) * 100, 2) : null;
+                        $score = $total > 0 ? round(($hadir / $total) * 100, 0) : null;
                     } else {
                         $score = StudentScore::where('assessment_component_id', $c->id)
                             ->where('student_id', $student->id)
@@ -105,8 +105,8 @@ class PublicGradeController extends Controller
                 $bonus = $adjustment->bonus ?? 0;
                 $deduction = $adjustment->deduction ?? 0;
 
-                $baseScore = $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null;
-                $finalScore = $baseScore !== null ? round($baseScore + $bonus - $deduction, 2) : null;
+                $baseScore = $totalWeight > 0 ? round($weightedSum / $totalWeight, 0) : null;
+                $finalScore = $baseScore !== null ? round($baseScore + $bonus - $deduction, 0) : null;
 
                 // ===== STATISTIK KELAS untuk kombinasi kelas + materi ini =====
                 $classStudentIds = $class->students()->pluck('students.id');
@@ -131,13 +131,13 @@ class PublicGradeController extends Controller
                         $wSum += ($s ?? 0) * $c->weight;
                         }
                         if ($fixedTotalWeight > 0) {
-                            $allFinalScores[] = round($wSum / $fixedTotalWeight, 2);
+                            $allFinalScores[] = round($wSum / $fixedTotalWeight, 0);
                         }
 }
 
                 $statistics = [
                     'count' => count($allFinalScores),
-                    'average' => count($allFinalScores) > 0 ? round(array_sum($allFinalScores) / count($allFinalScores), 2) : null,
+                    'average' => count($allFinalScores) > 0 ? round(array_sum($allFinalScores) / count($allFinalScores), 0) : null,
                     'highest' => count($allFinalScores) > 0 ? max($allFinalScores) : null,
                     'lowest' => count($allFinalScores) > 0 ? min($allFinalScores) : null,
                 ];
@@ -205,7 +205,7 @@ class PublicGradeController extends Controller
         }
 
         $validFinals = collect($results)->pluck('final')->filter(fn($v) => $v !== null);
-        $overallFinal = $validFinals->count() > 0 ? round($validFinals->avg(), 2) : null;
+        $overallFinal = $validFinals->count() > 0 ? round($validFinals->avg(), 0) : null;
 
         return view('public.nilai.show', [
             'student' => $student,
@@ -285,7 +285,7 @@ class PublicGradeController extends Controller
                         ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
                     $hadir = (int) ($counts['Hadir'] ?? 0);
                     $total = array_sum($counts->toArray());
-                    $score = $total > 0 ? round(($hadir / $total) * 100, 2) : null;
+                    $score = $total > 0 ? round(($hadir / $total) * 100, 0) : null;
                 } else {
                     $score = StudentScore::where('assessment_component_id', $c->id)
                         ->where('student_id', $student->id)->value('score');
@@ -301,8 +301,8 @@ class PublicGradeController extends Controller
             $bonus = $adjustment->bonus ?? 0;
             $deduction = $adjustment->deduction ?? 0;
 
-            $base = $totalWeight > 0 ? round($weightedSum / $totalWeight, 2) : null;
-            $final = $base !== null ? round($base + $bonus - $deduction, 2) : null;
+            $base = $totalWeight > 0 ? round($weightedSum / $totalWeight, 0) : null;
+            $final = $base !== null ? round($base + $bonus - $deduction, 0) : null;
 
             if ($final !== null) {
                 $allFinals[] = $final;
@@ -319,7 +319,7 @@ class PublicGradeController extends Controller
             ];
         }
 
-        $classOverallAverage = count($allFinals) > 0 ? round(array_sum($allFinals) / count($allFinals), 2) : null;
+        $classOverallAverage = count($allFinals) > 0 ? round(array_sum($allFinals) / count($allFinals), 0) : null;
 
         return view('public.nilai.class-table', [
             'class' => $class,

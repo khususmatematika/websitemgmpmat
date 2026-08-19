@@ -90,7 +90,7 @@ Balas HANYA dengan JSON valid tanpa markdown code block, format persis:
 PROMPT;
     }
 
-    protected function call(string $prompt, int $maxRetries = 3): string
+    public function call(string $prompt, int $maxRetries = 3): string
     {
         $apiKey = config('services.gemini.api_key');
         $model = config('services.gemini.model');

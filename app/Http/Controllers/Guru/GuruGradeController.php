@@ -6,6 +6,7 @@ use App\Models\AssessmentComponent;
 use App\Models\JournalAttendance;
 use App\Models\MaterialTopic;
 use App\Models\SchoolClass;
+use App\Models\ScoreAdjustment;
 use App\Models\StudentScore;
 use App\Models\TeachingJournal;
 use Illuminate\Http\Request;
@@ -71,7 +72,6 @@ class GuruGradeController extends Controller
             ->orderBy('order_index')
             ->get();
 
-        // Hitung persentase kehadiran per siswa (dipakai otomatis untuk komponen is_attendance)
         $journalIds = TeachingJournal::where('teacher_id', $teacherId)
             ->where('class_id', $classId)
             ->pluck('id');
@@ -85,21 +85,19 @@ class GuruGradeController extends Controller
 
             $hadir = (int) ($counts['Hadir'] ?? 0);
             $total = array_sum($counts->toArray());
-            $attendancePercent[$student->id] = $total > 0 ? round(($hadir / $total) * 100, 2) : 0;
+            $attendancePercent[$student->id] = $total > 0 ? round(($hadir / $total) * 100, 0) : 0;
         }
 
-        // Ambil nilai yang sudah tersimpan
         $existingScores = StudentScore::whereIn('assessment_component_id', $components->pluck('id'))
             ->get()
             ->groupBy('assessment_component_id')
             ->map(fn($group) => $group->keyBy('student_id'));
 
-            $isPublished = \App\Models\GradePublication::isPublished($classId, $materialTopicId);
-
-        $adjustments = \App\Models\ScoreAdjustment::where('class_id', $classId)
-        ->where('material_topic_id', $materialTopicId)
-        ->get()
-        ->keyBy('student_id');
+        // WAJIB: ambil data tambahan/pengurangan yang sudah tersimpan
+        $adjustments = ScoreAdjustment::where('class_id', $classId)
+            ->where('material_topic_id', $materialTopicId)
+            ->get()
+            ->keyBy('student_id');
 
         return view('guru.nilai.manage', [
             'class' => $class,
@@ -108,7 +106,7 @@ class GuruGradeController extends Controller
             'students' => $class->students,
             'attendancePercent' => $attendancePercent,
             'existingScores' => $existingScores,
-            'isPublished' => $isPublished,
+            'adjustments' => $adjustments,
         ] + $this->nav());
     }
 
@@ -142,6 +140,23 @@ class GuruGradeController extends Controller
         ])->with('status', 'Jenis penilaian berhasil ditambahkan.');
     }
 
+    public function updateComponent(Request $request, AssessmentComponent $assessmentComponent)
+    {
+        abort_if($assessmentComponent->teacher_id !== Auth::guard('guru')->id(), 403);
+
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'weight' => 'required|numeric|min:0|max:100',
+        ]);
+
+        $assessmentComponent->update($data);
+
+        return redirect()->route('guru.nilai.manage', [
+            'class_id' => $assessmentComponent->class_id,
+            'material_topic_id' => $assessmentComponent->material_topic_id,
+        ])->with('status', 'Bobot penilaian berhasil diperbarui.');
+    }
+
     public function destroyComponent(AssessmentComponent $assessmentComponent)
     {
         abort_if($assessmentComponent->teacher_id !== Auth::guard('guru')->id(), 403);
@@ -172,21 +187,21 @@ class GuruGradeController extends Controller
 
                 StudentScore::updateOrCreate(
                     ['assessment_component_id' => $componentId, 'student_id' => $studentId],
-                    ['score' => (float) $value]
+                    ['score' => (int) round((float) $value)]
                 );
             }
         }
 
         foreach ($request->input('adjustments', []) as $studentId => $val) {
-            \App\Models\ScoreAdjustment::updateOrCreate(
+            ScoreAdjustment::updateOrCreate(
                 [
                     'class_id' => $data['class_id'],
                     'material_topic_id' => $data['material_topic_id'],
                     'student_id' => $studentId,
                 ],
                 [
-                    'bonus' => $val['bonus'] ?? 0,
-                    'deduction' => $val['deduction'] ?? 0,
+                    'bonus' => (int) round((float) ($val['bonus'] ?? 0)),
+                    'deduction' => (int) round((float) ($val['deduction'] ?? 0)),
                 ]
             );
         }
@@ -195,78 +210,6 @@ class GuruGradeController extends Controller
             'class_id' => $data['class_id'],
             'material_topic_id' => $data['material_topic_id'],
         ])->with('status', 'Nilai berhasil disimpan.');
-    }
-
-    public function export(Request $request)
-    {
-    $teacherId = Auth::guard('guru')->id();
-    $classId = $request->get('class_id');
-    $materialTopicId = $request->get('material_topic_id');
-
-    $class = SchoolClass::with('students')->findOrFail($classId);
-    $topic = MaterialTopic::findOrFail($materialTopicId);
-
-    $components = AssessmentComponent::where('teacher_id', $teacherId)
-        ->where('class_id', $classId)
-        ->where('material_topic_id', $materialTopicId)
-        ->orderBy('order_index')->get();
-
-    $journalIds = TeachingJournal::where('teacher_id', $teacherId)->where('class_id', $classId)->pluck('id');
-
-    $spreadsheet = new Spreadsheet();
-    $sheet = $spreadsheet->getActiveSheet();
-    $sheet->setTitle('Nilai');
-
-    // Header
-    $col = 1;
-    $sheet->setCellValue([$col, 1], 'Nama Siswa');
-    $col++;
-    foreach ($components as $c) {
-        $sheet->setCellValue([$col, 1], $c->name . ' (' . $c->weight . '%)');
-        $col++;
-    }
-    
-    $sheet->setCellValue([$col++, 1], 'Tambahan');
-    $sheet->setCellValue([$col++, 1], 'Pengurangan');
-    $sheet->setCellValue([$col, 1], 'Nilai Akhir');
-
-    // Baris data
-    $row = 2;
-    foreach ($class->students as $student) {
-        $col = 1;
-        $sheet->setCellValue([$col, $row], $student->name);
-        $col++;
-
-        $weightedSum = 0;
-        $totalWeight = $components->sum('weight'); // total bobot SEMUA komponen, bukan hanya yang terisi
-
-        foreach ($components as $c) {
-            // ...
-            $sheet->setCellValue([$col++, $row], $score ?? '-');
-
-            $weightedSum += ($score ?? 0) * $c->weight; // komponen kosong dihitung 0
-        }
-
-        $adjustment = \App\Models\ScoreAdjustment::where('class_id', $classId)
-        ->where('material_topic_id', $materialTopicId)
-        ->where('student_id', $student->id)->first();
-
-        $bonus = $adjustment->bonus ?? 0;
-        $deduction = $adjustment->deduction ?? 0;
-
-        $sheet->setCellValue([$col++, $row], $bonus);
-        $sheet->setCellValue([$col++, $row], $deduction);
-
-        $final = $totalWeight > 0 ? round(($weightedSum / $totalWeight) + $bonus - $deduction, 2) : '-';
-        $sheet->setCellValue([$col, $row], $final);
-        $row++;
-    }
-
-    $filename = 'Nilai-' . str_replace(' ', '-', $class->name) . '-' . str_replace(' ', '-', $topic->title) . '.xlsx';
-    $tempPath = storage_path('app/temp-' . $filename);
-    (new Xlsx($spreadsheet))->save($tempPath);
-
-    return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
     }
 
     public function togglePublish(Request $request)
@@ -287,48 +230,79 @@ class GuruGradeController extends Controller
             ->with('status', $pub->is_published ? 'Nilai berhasil diaktifkan untuk dilihat siswa.' : 'Nilai disembunyikan dari siswa.');
     }
 
-    public function saveAdjustments(Request $request)
+    public function export(Request $request)
     {
-        $data = $request->validate([
-            'class_id' => 'required|exists:classes,id',
-            'material_topic_id' => 'required|exists:material_topics,id',
-            'adjustments' => 'nullable|array',
-        ]);
+        $teacherId = Auth::guard('guru')->id();
+        $classId = $request->get('class_id');
+        $materialTopicId = $request->get('material_topic_id');
 
-        foreach ($request->input('adjustments', []) as $studentId => $val) {
-            \App\Models\ScoreAdjustment::updateOrCreate(
-                [
-                    'class_id' => $data['class_id'],
-                    'material_topic_id' => $data['material_topic_id'],
-                    'student_id' => $studentId,
-                ],
-                [
-                    'bonus' => $val['bonus'] ?? 0,
-                    'deduction' => $val['deduction'] ?? 0,
-                ]
-            );
+        $class = SchoolClass::with('students')->findOrFail($classId);
+        $topic = MaterialTopic::findOrFail($materialTopicId);
+
+        $components = AssessmentComponent::where('teacher_id', $teacherId)
+            ->where('class_id', $classId)
+            ->where('material_topic_id', $materialTopicId)
+            ->orderBy('order_index')->get();
+
+        $journalIds = TeachingJournal::where('teacher_id', $teacherId)->where('class_id', $classId)->pluck('id');
+        $totalWeight = $components->sum('weight');
+
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Nilai');
+
+        $col = 1;
+        $sheet->setCellValue([$col++, 1], 'Nama Siswa');
+        foreach ($components as $c) {
+            $sheet->setCellValue([$col++, 1], $c->name . ' (' . $c->weight . '%)');
+        }
+        $sheet->setCellValue([$col++, 1], 'Tambahan');
+        $sheet->setCellValue([$col++, 1], 'Pengurangan');
+        $sheet->setCellValue([$col, 1], 'Nilai Akhir');
+
+        $row = 2;
+        foreach ($class->students as $student) {
+            $col = 1;
+            $sheet->setCellValue([$col++, $row], $student->name);
+
+            $weightedSum = 0;
+
+            foreach ($components as $c) {
+                if ($c->is_attendance) {
+                    $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
+                        ->where('student_id', $student->id)
+                        ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
+                    $hadir = (int) ($counts['Hadir'] ?? 0);
+                    $total = array_sum($counts->toArray());
+                    $final = $totalWeight > 0 ? round(($weightedSum / $totalWeight) + $bonus - $deduction, 2) : '-';
+                } else {
+                    $score = StudentScore::where('assessment_component_id', $c->id)
+                        ->where('student_id', $student->id)->value('score');
+                }
+
+                $sheet->setCellValue([$col++, $row], $score ?? '-');
+                $weightedSum += ($score ?? 0) * $c->weight;
+            }
+
+            $adjustment = ScoreAdjustment::where('class_id', $classId)
+                ->where('material_topic_id', $materialTopicId)
+                ->where('student_id', $student->id)->first();
+
+            $bonus = $adjustment->bonus ?? 0;
+            $deduction = $adjustment->deduction ?? 0;
+
+            $sheet->setCellValue([$col++, $row], $bonus);
+            $sheet->setCellValue([$col++, $row], $deduction);
+
+            $final = $totalWeight > 0 ? round(($weightedSum / $totalWeight) + $bonus - $deduction, 2) : '-';
+            $sheet->setCellValue([$col, $row], $final);
+            $row++;
         }
 
-        return redirect()->route('guru.nilai.manage', [
-            'class_id' => $data['class_id'],
-            'material_topic_id' => $data['material_topic_id'],
-        ])->with('status', 'Nilai tambahan/pengurangan berhasil disimpan.');
-    }
+        $filename = 'Nilai-' . str_replace(' ', '-', $class->name) . '-' . str_replace(' ', '-', $topic->title) . '.xlsx';
+        $tempPath = storage_path('app/temp-' . $filename);
+        (new Xlsx($spreadsheet))->save($tempPath);
 
-    public function updateComponent(Request $request, AssessmentComponent $assessmentComponent)
-    {
-        abort_if($assessmentComponent->teacher_id !== Auth::guard('guru')->id(), 403);
-
-        $data = $request->validate([
-            'name' => 'required|string|max:100',
-            'weight' => 'required|numeric|min:0|max:100',
-        ]);
-
-        $assessmentComponent->update($data);
-
-        return redirect()->route('guru.nilai.manage', [
-            'class_id' => $assessmentComponent->class_id,
-            'material_topic_id' => $assessmentComponent->material_topic_id,
-        ])->with('status', 'Bobot penilaian berhasil diperbarui.');
+        return response()->download($tempPath, $filename)->deleteFileAfterSend(true);
     }
 }

@@ -94,6 +94,8 @@ Route::get('/nilai/ganti-password', [PublicGradeController::class, 'showChangePa
 Route::post('/nilai/ganti-password', [PublicGradeController::class, 'updatePassword'])->name('nilai.password.update');
 Route::get('/nilai/kelas/{classId}/{topicId}', [PublicGradeController::class, 'showClassTable'])->name('nilai.class-table');
 
+Route::post('/asisten/tanya', [App\Http\Controllers\Public\AssistantController::class, 'ask'])->name('assistant.ask');
+
 // ================= GURU =================
 Route::prefix('guru')->name('guru.')->group(function () {
     Route::get('/login', [GuruAuthController::class, 'showLoginForm'])->name('login');
