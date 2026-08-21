@@ -63,8 +63,13 @@ class GuruGradeController extends Controller
 
         abort_unless($classId && $materialTopicId, 400, 'Kelas dan materi wajib dipilih.');
 
-        $class = SchoolClass::with('students')->findOrFail($classId);
+        $class = SchoolClass::findOrFail($classId);
         $topic = MaterialTopic::findOrFail($materialTopicId);
+
+        // Ambil siswa LANGSUNG dari tabel students, urut nama, tidak lewat relasi Eloquent sama sekali
+        $students = \App\Models\Student::whereHas('classes', function ($q) use ($classId) {
+            $q->where('classes.id', $classId);
+        })->orderBy('name')->get();
 
         $components = AssessmentComponent::where('teacher_id', $teacherId)
             ->where('class_id', $classId)
@@ -77,7 +82,7 @@ class GuruGradeController extends Controller
             ->pluck('id');
 
         $attendancePercent = [];
-        foreach ($class->students as $student) {
+        foreach ($students as $student) {
             $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
                 ->where('student_id', $student->id)
                 ->selectRaw('status, count(*) as total')
@@ -85,7 +90,7 @@ class GuruGradeController extends Controller
 
             $hadir = (int) ($counts['Hadir'] ?? 0);
             $total = array_sum($counts->toArray());
-            $attendancePercent[$student->id] = $total > 0 ? round(($hadir / $total) * 100, 0) : 0;
+            $attendancePercent[$student->id] = $total > 0 ? (int) round(($hadir / $total) * 100) : 0;
         }
 
         $existingScores = StudentScore::whereIn('assessment_component_id', $components->pluck('id'))
@@ -93,7 +98,6 @@ class GuruGradeController extends Controller
             ->groupBy('assessment_component_id')
             ->map(fn($group) => $group->keyBy('student_id'));
 
-        // WAJIB: ambil data tambahan/pengurangan yang sudah tersimpan
         $adjustments = ScoreAdjustment::where('class_id', $classId)
             ->where('material_topic_id', $materialTopicId)
             ->get()
@@ -103,7 +107,7 @@ class GuruGradeController extends Controller
             'class' => $class,
             'topic' => $topic,
             'components' => $components,
-            'students' => $class->students,
+            'students' => $students,
             'attendancePercent' => $attendancePercent,
             'existingScores' => $existingScores,
             'adjustments' => $adjustments,
@@ -236,7 +240,13 @@ class GuruGradeController extends Controller
         $classId = $request->get('class_id');
         $materialTopicId = $request->get('material_topic_id');
 
-        $class = SchoolClass::with('students')->findOrFail($classId);
+        $class = SchoolClass::findOrFail($classId);
+
+        $orderedStudents = \App\Models\Student::whereHas('classes', function ($q) use ($classId) {
+            $q->where('classes.id', $classId);
+        })->orderBy('name')->get();
+
+        $class->setRelation('students', $orderedStudents);
         $topic = MaterialTopic::findOrFail($materialTopicId);
 
         $components = AssessmentComponent::where('teacher_id', $teacherId)

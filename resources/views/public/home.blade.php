@@ -29,7 +29,68 @@
         background: linear-gradient(90deg, transparent, #20B2AA 20%, #20B2AA 80%, transparent);
         height: 2px;
     }
+
+    .spot-card {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+    }
+    .spot-card:hover {
+        transform: translateY(-6px) scale(1.015);
+        box-shadow: 0 20px 40px -12px rgba(15, 37, 68, 0.35);
+    }
+
+    .spot-glow {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(circle 180px at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.25), transparent 70%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .spot-card:hover .spot-glow { opacity: 1; }
+
+    @keyframes iconFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+    .icon-float { animation: iconFloat 3s ease-in-out infinite; }
+
+    .spot-card {
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease;
+    }
+    .spot-card:hover {
+        transform: translateY(-6px) scale(1.015);
+        box-shadow: 0 20px 40px -12px rgba(15, 37, 68, 0.35);
+    }
+
+    .spot-glow {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(circle 180px at var(--x, 50%) var(--y, 50%), rgba(255,255,255,0.25), transparent 70%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1;
+    }
+    .spot-card:hover .spot-glow { opacity: 1; }
+
+    @keyframes iconFloat {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+    .icon-float { animation: iconFloat 3s ease-in-out infinite; }
+
+    @keyframes decoFloat {
+        0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.6; }
+        50% { transform: translateY(-10px) rotate(8deg); opacity: 1; }
+    }
+    .deco-float { animation: decoFloat 4s ease-in-out infinite; }
+
+    .spot-card:hover .material-symbols-outlined.absolute {
+        transform: scale(1.08) rotate(3deg);
+        transition: transform 0.6s ease;
+    }
 </style>
+
 @endpush
 
 @section('content')
@@ -51,7 +112,7 @@
             <div class="lg:col-span-7 text-center lg:text-left">
                 <div class="inline-flex items-center gap-1.5 bg-white/10 border border-white/20 backdrop-blur-sm rounded-full px-3 py-1 mb-4">
                     <span class="w-1.5 h-1.5 rounded-full bg-math-teal glow-badge"></span>
-                    <span class="text-white/80 text-[10px] md:text-xs font-medium">Portal Aktif &middot; Terintegrasi AI</span>
+                    <span class="text-white/80 text-[10px] md:text-xs font-medium">SMA NEGERI 1 TUREN</span>
                 </div>
 
                 <h1 class="font-headline text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-[1.1] mb-4">
@@ -59,7 +120,7 @@
                     <span class="text-math-teal">Lebih Cerdas</span> &amp; Terarah
                 </h1>
                 <p class="text-white/70 text-sm md:text-base max-w-lg mx-auto lg:mx-0 mb-7">
-                    Satu portal untuk materi, latihan adaptif berbasis AI, karya kreatif siswa, dan pemantauan nilai &mdash; dirancang khusus untuk SMAN 1 Turen.
+                    Selamat datang di Portal Matematika SMA Negeri 1 Turen.
                 </p>
 
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-center lg:justify-start gap-3">
@@ -115,91 +176,170 @@
     </div>
 </section>
 
-{{-- ============ FITUR UTAMA — BENTO GRID ============ --}}
+{{-- ============ FITUR UTAMA — INTERACTIVE BENTO GRID ============ --}}
 <section class="px-4 md:px-margin-desktop max-w-container-max mx-auto -mt-2 pb-4 reveal-on-scroll">
     <div class="text-center mb-8 md:mb-10">
         <span class="text-math-teal font-label text-xs uppercase tracking-widest">Semua yang Kamu Butuhkan</span>
         <h2 class="font-headline text-2xl md:text-3xl font-bold text-navy-deep mt-1">Fitur Utama Portal</h2>
+        <div class="w-14 h-1 bg-math-teal rounded-full mx-auto mt-3"></div>
     </div>
 
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 auto-rows-[130px] md:auto-rows-[150px]">
 
-        <a href="{{ route('materials.public') }}" class="bento-item col-span-2 row-span-2 bg-navy-deep rounded-3xl p-5 md:p-6 flex flex-col justify-between relative overflow-hidden group">
-            <div class="absolute -right-8 -bottom-8 w-32 h-32 bg-math-teal/20 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-500"></div>
-            <span class="material-symbols-outlined text-math-teal text-3xl relative z-10">book</span>
+        {{-- MATERI — kartu besar --}}
+        <a href="{{ route('materials.public') }}" data-spot
+           class="spot-card bento-item col-span-2 row-span-2 rounded-3xl p-5 md:p-6 flex flex-col justify-between relative overflow-hidden group text-white"
+           style="background: linear-gradient(135deg, #0F2544 0%, #1b365d 55%, #20B2AA 140%);">
+            <div class="spot-glow"></div>
+            <div class="absolute inset-0 math-pattern opacity-[0.06]"></div>
+            <span class="material-symbols-outlined absolute -right-6 -bottom-10 text-white/[0.07] pointer-events-none select-none" style="font-size: 220px;">auto_stories</span>
+            <span class="deco-float absolute text-math-teal/25 font-headline font-bold" style="right: 18%; top: 22%; font-size: 2.2rem;">∫</span>
+            <span class="deco-float absolute text-white/15 font-headline font-bold" style="right: 32%; top: 55%; font-size: 1.6rem; animation-delay: 1.2s;">π</span>
+            <span class="deco-float absolute text-math-teal/20 font-headline font-bold" style="right: 10%; top: 45%; font-size: 1.4rem; animation-delay: 2.1s;">√x</span>
+
+            <div class="relative z-10 flex items-start justify-between">
+                <div class="w-11 h-11 rounded-xl bg-white/10 backdrop-blur-sm flex items-center justify-center icon-float">
+                    <span class="material-symbols-outlined text-math-teal text-2xl">book</span>
+                </div>
+                <span class="text-[10px] font-bold bg-white/15 backdrop-blur-sm px-2 py-1 rounded-full">X - XII</span>
+            </div>
             <div class="relative z-10">
-                <h3 class="font-headline text-white text-lg md:text-xl font-bold mb-1">Materi Pembelajaran</h3>
-                <p class="text-white/60 text-xs md:text-sm">Modul lengkap kelas X-XII sesuai Kurikulum Merdeka</p>
+                <h3 class="font-headline text-lg md:text-xl font-bold mb-1">Materi Pembelajaran</h3>
+                <p class="text-white/70 text-xs md:text-sm mb-3">Modul lengkap sesuai Kurikulum Merdeka</p>
+                <span class="inline-flex items-center gap-1 text-math-teal text-xs font-bold opacity-0 group-hover:opacity-100 translate-x-[-8px] group-hover:translate-x-0 transition-all duration-300">
+                    Jelajahi <span class="material-symbols-outlined text-[14px]">arrow_forward</span>
+                </span>
             </div>
         </a>
 
-        <a href="{{ route('latihan.create') }}" class="bento-item bg-status-success rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden group">
-            <span class="material-symbols-outlined text-white text-2xl">history_edu</span>
-            <h3 class="font-headline text-white text-sm md:text-base font-bold">Latihan AI</h3>
-        </a>
-
-        <a href="{{ route('bank-soal.public') }}" class="bento-item bg-status-error rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden group">
-            <span class="material-symbols-outlined text-white text-2xl">quiz</span>
-            <h3 class="font-headline text-white text-sm md:text-base font-bold">Bank Soal</h3>
-        </a>
-
-        <a href="{{ route('digital-lessons.public') }}" class="bento-item bg-primary rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden group">
-            <span class="material-symbols-outlined text-math-teal text-2xl">devices</span>
-            <h3 class="font-headline text-white text-sm md:text-base font-bold">Pembelajaran Digital</h3>
-        </a>
-
-        <a href="{{ route('toolkits.public') }}" class="bento-item bg-math-teal rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden group">
-            <span class="material-symbols-outlined text-white text-2xl">calculate</span>
-            <h3 class="font-headline text-white text-sm md:text-base font-bold">Toolkit</h3>
-        </a>
-
-        <a href="{{ route('forum.public') }}" class="bento-item col-span-2 bg-white border border-outline-variant/30 rounded-3xl p-4 md:p-5 flex items-center justify-between group hover:shadow-lg transition-shadow">
-            <div>
-                <span class="material-symbols-outlined text-secondary text-2xl mb-1 block">forum</span>
-                <h3 class="font-headline text-navy-deep text-sm md:text-base font-bold">Forum Diskusi</h3>
-                <p class="text-on-surface-variant text-[11px] md:text-xs">Tanya jawab seputar matematika</p>
+        {{-- LATIHAN AI --}}
+        <a href="{{ route('latihan.create') }}" data-spot
+           class="spot-card bento-item rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden group text-white"
+           style="background: linear-gradient(135deg, #2D6A4F 0%, #52B788 100%);">
+            <div class="spot-glow"></div>
+            <span class="material-symbols-outlined absolute -right-5 -bottom-6 text-white/10 pointer-events-none select-none" style="font-size: 110px;">quiz</span>
+            <span class="deco-float absolute text-white/20 font-headline font-bold" style="right: 15%; top: 18%; font-size: 1.3rem;">✓</span>
+            <div class="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center relative z-10 icon-float">
+                <span class="material-symbols-outlined text-xl">history_edu</span>
             </div>
-            <span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            <div class="relative z-10">
+                <h3 class="font-headline text-sm md:text-base font-bold">Latihan AI</h3>
+                <p class="text-white/70 text-[10px] mt-0.5 hidden md:block">10 soal adaptif</p>
+            </div>
         </a>
 
-        <a href="{{ route('student-works.public') }}" class="bento-item col-span-2 bg-white border border-outline-variant/30 rounded-3xl p-4 md:p-5 flex items-center justify-between group hover:shadow-lg transition-shadow">
-            <div>
-                <span class="material-symbols-outlined text-status-warning text-2xl mb-1 block">auto_awesome_motion</span>
-                <h3 class="font-headline text-navy-deep text-sm md:text-base font-bold">Karya Siswa</h3>
-                <p class="text-on-surface-variant text-[11px] md:text-xs">Galeri kreativitas matematika</p>
+        {{-- BANK SOAL --}}
+        <a href="{{ route('bank-soal.public') }}" data-spot
+           class="spot-card bento-item rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden group text-white"
+           style="background: linear-gradient(135deg, #D00000 0%, #E85D5D 100%);">
+            <div class="spot-glow"></div>
+            <span class="material-symbols-outlined absolute -right-5 -bottom-6 text-white/10 pointer-events-none select-none" style="font-size: 110px;">help</span>
+            <span class="deco-float absolute text-white/20 font-headline font-bold" style="right: 18%; top: 20%; font-size: 1.4rem; animation-delay: 0.6s;">?</span>
+            <div class="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center relative z-10 icon-float">
+                <span class="material-symbols-outlined text-xl">quiz</span>
             </div>
-            <span class="material-symbols-outlined text-on-surface-variant group-hover:translate-x-1 transition-transform">arrow_forward</span>
+            <div class="relative z-10">
+                <h3 class="font-headline text-sm md:text-base font-bold">Bank Soal</h3>
+                <p class="text-white/70 text-[10px] mt-0.5 hidden md:block">Soal siap pakai</p>
+            </div>
+        </a>
+
+        {{-- PEMBELAJARAN DIGITAL --}}
+        <a href="{{ route('digital-lessons.public') }}" data-spot
+           class="spot-card bento-item rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden group text-white"
+           style="background: linear-gradient(135deg, #002046 0%, #2E476F 100%);">
+            <div class="spot-glow"></div>
+            <span class="material-symbols-outlined absolute -right-5 -bottom-6 text-white/[0.07] pointer-events-none select-none" style="font-size: 110px;">smart_display</span>
+            <span class="deco-float absolute text-math-teal/25" style="right: 20%; top: 22%; font-size: 1.2rem; animation-delay: 1.5s;">
+                <span class="material-symbols-outlined text-[20px]">play_circle</span>
+            </span>
+            <div class="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center relative z-10 icon-float">
+                <span class="material-symbols-outlined text-math-teal text-xl">devices</span>
+            </div>
+            <div class="relative z-10">
+                <h3 class="font-headline text-sm md:text-base font-bold">Pembelajaran Digital</h3>
+                <p class="text-white/60 text-[10px] mt-0.5 hidden md:block">Video & simulasi</p>
+            </div>
+        </a>
+
+        {{-- TOOLKIT --}}
+        <a href="{{ route('toolkits.public') }}" data-spot
+           class="spot-card bento-item rounded-3xl p-4 md:p-5 flex flex-col justify-between relative overflow-hidden group text-white"
+           style="background: linear-gradient(135deg, #0F8B8D 0%, #20B2AA 60%, #59DAD1 100%);">
+            <div class="spot-glow"></div>
+            <span class="material-symbols-outlined absolute -right-5 -bottom-6 text-white/10 pointer-events-none select-none" style="font-size: 110px;">calculate</span>
+            <span class="deco-float absolute text-white/20 font-headline font-bold" style="right: 20%; top: 20%; font-size: 1.3rem; animation-delay: 2s;">%</span>
+            <div class="w-9 h-9 rounded-lg bg-white/15 flex items-center justify-center relative z-10 icon-float">
+                <span class="material-symbols-outlined text-xl">calculate</span>
+            </div>
+            <div class="relative z-10">
+                <h3 class="font-headline text-sm md:text-base font-bold">Toolkit</h3>
+                <p class="text-white/80 text-[10px] mt-0.5 hidden md:block">Kalkulator & grafik</p>
+            </div>
+        </a>
+
+        {{-- FORUM --}}
+        <a href="{{ route('forum.public') }}" data-spot
+           class="spot-card bento-item col-span-2 rounded-3xl p-4 md:p-5 flex items-center justify-between group relative overflow-hidden text-white"
+           style="background: linear-gradient(120deg, #006A65 0%, #59DAD1 130%);">
+            <div class="spot-glow"></div>
+            <span class="material-symbols-outlined absolute right-8 -top-6 text-white/10 pointer-events-none select-none" style="font-size: 130px;">forum</span>
+            <span class="deco-float absolute text-white/15" style="right: 30%; bottom: 15%; animation-delay: 1s;">
+                <span class="material-symbols-outlined text-[26px]">chat_bubble</span>
+            </span>
+            <div class="relative z-10 flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center shrink-0 icon-float">
+                    <span class="material-symbols-outlined text-xl">forum</span>
+                </div>
+                <div>
+                    <h3 class="font-headline text-sm md:text-base font-bold">Forum Diskusi</h3>
+                    <p class="text-white/70 text-[11px] md:text-xs">Tanya jawab seputar matematika</p>
+                </div>
+            </div>
+            <span class="material-symbols-outlined relative z-10 group-hover:translate-x-1.5 transition-transform">arrow_forward</span>
+        </a>
+
+        {{-- KARYA SISWA --}}
+        <a href="{{ route('student-works.public') }}" data-spot
+           class="spot-card bento-item col-span-2 rounded-3xl p-4 md:p-5 flex items-center justify-between group relative overflow-hidden text-white"
+           style="background: linear-gradient(120deg, #B36A00 0%, #FFB703 130%);">
+            <div class="spot-glow"></div>
+            <span class="material-symbols-outlined absolute right-8 -top-6 text-white/10 pointer-events-none select-none" style="font-size: 130px;">palette</span>
+            <span class="deco-float absolute text-white/20" style="right: 32%; bottom: 18%; animation-delay: 1.8s;">
+                <span class="material-symbols-outlined text-[24px]">star</span>
+            </span>
+            <div class="relative z-10 flex items-center gap-3.5">
+                <div class="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 icon-float">
+                    <span class="material-symbols-outlined text-xl">auto_awesome_motion</span>
+                </div>
+                <div>
+                    <h3 class="font-headline text-sm md:text-base font-bold">Karya Siswa</h3>
+                    <p class="text-white/80 text-[11px] md:text-xs">Galeri kreativitas matematika</p>
+                </div>
+            </div>
+            <span class="material-symbols-outlined relative z-10 group-hover:translate-x-1.5 transition-transform">arrow_forward</span>
         </a>
 
     </div>
 </section>
 
-{{-- ============ CARA KERJA ============ --}}
+{{-- ============ KUTIPAN MOTIVASI ============ --}}
 <section class="py-14 md:py-20 px-4 md:px-margin-desktop max-w-container-max mx-auto reveal-on-scroll">
-    <div class="text-center mb-10 md:mb-14">
-        <span class="text-math-teal font-label text-xs uppercase tracking-widest">Mudah Digunakan</span>
-        <h2 class="font-headline text-2xl md:text-3xl font-bold text-navy-deep mt-1">Mulai dalam 3 Langkah</h2>
-    </div>
-
-    <div class="relative grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-4">
-        <div class="hidden md:block absolute top-7 left-[16.5%] right-[16.5%] step-line"></div>
-
-        <div class="relative text-center">
-            <div class="w-14 h-14 rounded-2xl bg-navy-deep text-white flex items-center justify-center mx-auto mb-4 font-headline font-bold text-lg shadow-lg shadow-navy-deep/20 relative z-10">1</div>
-            <h3 class="font-headline font-bold text-navy-deep mb-1.5">Masuk ke Akun</h3>
-            <p class="text-on-surface-variant text-sm max-w-xs mx-auto">Login pakai NIS (siswa) atau email (guru/admin) &mdash; satu pintu untuk semua peran.</p>
-        </div>
-
-        <div class="relative text-center">
-            <div class="w-14 h-14 rounded-2xl bg-math-teal text-white flex items-center justify-center mx-auto mb-4 font-headline font-bold text-lg shadow-lg shadow-math-teal/20 relative z-10">2</div>
-            <h3 class="font-headline font-bold text-navy-deep mb-1.5">Pilih Fitur</h3>
-            <p class="text-on-surface-variant text-sm max-w-xs mx-auto">Akses materi, latihan AI, forum, atau unggah karya sesuai kebutuhan belajarmu.</p>
-        </div>
-
-        <div class="relative text-center">
-            <div class="w-14 h-14 rounded-2xl bg-status-success text-white flex items-center justify-center mx-auto mb-4 font-headline font-bold text-lg shadow-lg shadow-status-success/20 relative z-10">3</div>
-            <h3 class="font-headline font-bold text-navy-deep mb-1.5">Pantau Progres</h3>
-            <p class="text-on-surface-variant text-sm max-w-xs mx-auto">Cek nilai, kehadiran, dan hasil latihan kapan saja lewat menu Nilai &amp; Kehadiran.</p>
+    <div class="relative bg-gradient-to-br from-math-teal/5 via-white to-primary/5 border border-outline-variant/30 rounded-[2rem] p-8 md:p-14 text-center overflow-hidden">
+        <div class="absolute top-6 left-6 md:top-8 md:left-10 text-math-teal/15 font-headline text-7xl md:text-9xl leading-none select-none">&ldquo;</div>
+        <div class="relative z-10 max-w-2xl mx-auto">
+            <p class="font-headline text-lg md:text-2xl font-bold text-navy-deep leading-relaxed mb-5">
+                Setiap angka memiliki makna, setiap masalah memiliki solusi, dan setiap pembelajaran membuka jalan menuju masa depan.
+            </p>
+            <div class="flex items-center justify-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-navy-deep flex items-center justify-center">
+                    <span class="material-symbols-outlined text-math-teal text-[18px]">functions</span>
+                </div>
+                <div class="text-left">
+                    <p class="font-bold text-navy-deep text-sm">MGMP Matematika</p>
+                    <p class="text-on-surface-variant text-xs">SMA Negeri 1 Turen</p>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -263,5 +403,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.querySelectorAll('.reveal-on-scroll').forEach(el => observer.observe(el));
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const counterObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            const el = entry.target;
+            const target = parseInt(el.dataset.target, 10);
+            const duration = 1400;
+            const start = performance.now();
+
+            function tick(now) {
+                const progress = Math.min((now - start) / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                el.textContent = Math.floor(eased * target);
+                if (progress < 1) requestAnimationFrame(tick);
+                else el.textContent = target;
+            }
+            requestAnimationFrame(tick);
+            counterObserver.unobserve(el);
+        });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.counter').forEach(el => counterObserver.observe(el));
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-spot]').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 100;
+            const y = ((e.clientY - rect.top) / rect.height) * 100;
+            card.style.setProperty('--x', x + '%');
+            card.style.setProperty('--y', y + '%');
+        });
+    });
+});
 </script>
+
 @endpush

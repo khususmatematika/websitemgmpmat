@@ -222,44 +222,9 @@
     </main>
 
     @unless (request()->routeIs('guru.*') || request()->routeIs('admin.*'))
-    <footer class="bg-navy-deep text-white pt-12 md:pt-16 pb-8 px-4 md:px-margin-desktop mt-20 relative overflow-hidden">
-        <div class="absolute inset-0 math-pattern opacity-5"></div>
-        <div class="max-w-container-max mx-auto relative z-10">
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-8 pb-10 border-b border-white/10">
-                <div class="col-span-2">
-                    <div class="flex items-center gap-2.5 mb-3">
-                        <div class="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-math-teal text-[20px]">functions</span>
-                        </div>
-                        <span class="font-headline font-bold">SMAN 1 Turen Math Portal</span>
-                    </div>
-                    <p class="text-white/60 text-sm max-w-sm">Pusat digitalisasi pembelajaran matematika, galeri karya siswa, dan sumber daya akademik terintegrasi AI.</p>
-                </div>
-
-                <div>
-                    <h4 class="font-label text-xs uppercase tracking-widest text-math-teal mb-3">Jelajahi</h4>
-                    <ul class="space-y-2 text-sm text-white/60">
-                        <li><a href="{{ route('materials.public') }}" class="hover:text-white transition-colors">Materi</a></li>
-                        <li><a href="{{ route('forum.public') }}" class="hover:text-white transition-colors">Forum Diskusi</a></li>
-                        <li><a href="{{ route('bank-soal.public') }}" class="hover:text-white transition-colors">Bank Soal</a></li>
-                        <li><a href="{{ route('latihan.create') }}" class="hover:text-white transition-colors">Latihan AI</a></li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h4 class="font-label text-xs uppercase tracking-widest text-math-teal mb-3">Akses</h4>
-                    <ul class="space-y-2 text-sm text-white/60">
-                        <li><a href="{{ route('teachers.public') }}" class="hover:text-white transition-colors">Profil Guru</a></li>
-                        <li><a href="{{ route('login') }}" class="hover:text-white transition-colors">Masuk Akun</a></li>
-                        <li><a href="{{ route('student-works.public') }}" class="hover:text-white transition-colors">Karya Siswa</a></li>
-                        <li><a href="{{ route('toolkits.public') }}" class="hover:text-white transition-colors">Toolkit</a></li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="pt-6 text-center text-white/40 text-xs">
-                &copy; MGMP Matematika SMA Negeri 1 Turen 2026. All rights reserved.
-            </div>
+    <footer class="bg-navy-deep text-white py-6 px-4 md:px-margin-desktop mt-20">
+        <div class="max-w-container-max mx-auto text-center text-white/60 text-xs md:text-sm">
+            &copy; MGMP Matematika SMA Negeri 1 Turen 2026
         </div>
     </footer>
     @endunless

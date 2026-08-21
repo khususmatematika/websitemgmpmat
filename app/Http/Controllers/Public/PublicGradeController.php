@@ -258,7 +258,13 @@ class PublicGradeController extends Controller
         $isPublished = \App\Models\GradePublication::isPublished($classId, $topicId);
         abort_unless($isPublished, 403, 'Tabel nilai kelas ini belum diaktifkan oleh guru.');
 
-        $class = \App\Models\SchoolClass::with('students')->findOrFail($classId);
+        $class = \App\Models\SchoolClass::findOrFail($classId);
+
+        $orderedStudents = \App\Models\Student::whereHas('classes', function ($q) use ($classId) {
+            $q->where('classes.id', $classId);
+        })->orderBy('name')->get();
+
+        $class->setRelation('students', $orderedStudents);
         $topic = MaterialTopic::findOrFail($topicId);
 
         $components = AssessmentComponent::where('class_id', $classId)
