@@ -4,8 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
-    <link rel="apple-touch-icon" href="{{ asset('favicon.png') }}">
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-sman1turen.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo-sman1turen.png') }}">
     <title>@yield('title', 'SMAN 1 Turen Math Portal')</title>
 
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -89,30 +89,22 @@
 </head>
 <body class="bg-surface-bg font-body text-on-surface pb-16 md:pb-0">
 
-   <header class="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-outline-variant/50 shadow-sm">
+   <header class="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-outline-variant/50 shadow-sm
+                {{ (!auth('guru')->check() && !auth('admin')->check()) ? 'hidden md:block' : 'block' }}">
         <div class="max-w-container-max mx-auto flex justify-between items-center px-4 md:px-margin-desktop py-3">
-            <div class="flex items-center gap-2">
-                @guest('guru')
-                    @guest('admin')
-                    <button id="drawer-toggle" type="button" class="md:hidden w-10 h-10 flex items-center justify-center rounded-lg text-navy-deep hover:bg-surface-container transition-colors">
-                        <span class="material-symbols-outlined text-[24px]">menu</span>
-                    </button>
-                    @endguest
-                @endguest
-                <a href="{{ route('home') }}" class="flex items-center gap-2.5 shrink-0 group">
-                    <div class="w-9 h-9 rounded-xl hero-gradient flex items-center justify-center shadow-md shadow-navy-deep/20 group-hover:scale-105 transition-transform">
-                        <span class="material-symbols-outlined text-white text-[20px]">functions</span>
-                    </div>
-                    <div class="hidden xs:flex flex-col leading-none">
-                        <span class="font-headline text-sm md:text-base font-bold text-navy-deep">SMAN 1 Turen</span>
-                        <span class="font-label text-[9px] text-math-teal tracking-wider uppercase hidden md:block">Math Portal</span>
-                    </div>
-                </a>
-            </div>
+            <a href="{{ route('home') }}" class="flex items-center gap-2.5 shrink-0 group">
+                <div class="w-9 h-9 rounded-xl bg-white shadow-md shadow-navy-deep/20 group-hover:scale-105 transition-transform overflow-hidden flex items-center justify-center p-0.5">
+                    <img src="{{ asset('images/logo-sman1turen.png') }}" alt="Logo SMAN 1 Turen" class="w-full h-full object-contain">
+                </div>
+                <div class="flex flex-col leading-none">
+                    <span class="font-headline text-sm md:text-base font-bold text-navy-deep">SMAN 1 Turen</span>
+                    <span class="font-label text-[9px] text-math-teal tracking-wider uppercase">Math Portal</span>
+                </div>
+            </a>
 
             @guest('guru')
                 @guest('admin')
-                <nav class="hidden md:flex items-center gap-0.5 bg-surface-container-low rounded-full p-1">
+                <nav class="hidden md:flex items-center gap-1.5 bg-surface-container-low rounded-full p-1.5">
                     @php
                         $guestNav = [
                             ['url' => route('home'), 'icon' => 'home', 'label' => 'Beranda'],
@@ -128,10 +120,10 @@
                     @endphp
                     @foreach ($guestNav as $item)
                     <a href="{{ $item['url'] }}"
-                    class="nav-icon-btn relative flex items-center justify-center w-9 h-9 rounded-full transition-all
-                            {{ request()->url() === $item['url'] ? 'bg-navy-deep text-white shadow-md' : 'text-on-surface-variant hover:bg-white hover:text-math-teal hover:shadow-sm' }}">
-                        <span class="material-symbols-outlined text-[19px]">{{ $item['icon'] }}</span>
-                        <span class="nav-tooltip absolute top-full mt-2 whitespace-nowrap bg-navy-deep text-white text-xs px-2.5 py-1.5 rounded-lg z-50 pointer-events-none shadow-lg">
+                    class="nav-icon-btn relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200
+                            {{ request()->url() === $item['url'] ? 'bg-navy-deep text-white shadow-md scale-105' : 'text-on-surface-variant hover:bg-white hover:text-math-teal hover:shadow-sm hover:scale-105' }}">
+                        <span class="material-symbols-outlined text-[19px]" @if(request()->url() === $item['url']) style="font-variation-settings: 'FILL' 1;" @endif>{{ $item['icon'] }}</span>
+                        <span class="nav-tooltip absolute top-full mt-2.5 whitespace-nowrap bg-navy-deep text-white text-xs px-3 py-1.5 rounded-lg z-50 pointer-events-none shadow-lg">
                             {{ $item['label'] }}
                         </span>
                     </a>
@@ -188,34 +180,57 @@
         </div>
     </header>
 
-    {{-- Mobile Drawer Menu (hanya untuk pengunjung) --}}
+    {{-- FAB Menu (mobile, pengunjung publik) --}}
     @guest('guru')
         @guest('admin')
-        <div id="drawer-backdrop" class="hidden fixed inset-0 bg-black/40 z-[60] md:hidden" onclick="closeDrawer()"></div>
-        <div id="mobile-drawer" class="hidden-drawer fixed top-0 left-0 h-full w-72 bg-white z-[70] md:hidden shadow-2xl flex flex-col">
-            <div class="flex items-center justify-between p-4 border-b border-outline-variant">
-                <span class="font-headline font-bold text-navy-deep">Menu</span>
-                <button onclick="closeDrawer()" class="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-surface-container">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </div>
-            <nav class="flex-1 overflow-y-auto p-3 space-y-1">
-                @foreach ($guestNav as $item)
-                <a href="{{ $item['url'] }}" class="flex items-center gap-3 p-3 rounded-lg text-on-surface-variant hover:bg-surface-container font-medium text-sm">
-                    <span class="material-symbols-outlined text-[20px]">{{ $item['icon'] }}</span>
-                    {{ $item['label'] }}
+        <div id="fab-backdrop" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] md:hidden" onclick="closeFabMenu()"></div>
+
+        <div id="fab-menu" class="hidden-fab fixed bottom-24 left-1/2 -translate-x-1/2 z-[70] md:hidden w-[calc(100vw-2rem)] max-w-sm">
+            <div class="bg-white rounded-2xl shadow-2xl border border-outline-variant/30 p-4 grid grid-cols-3 gap-3">
+                @php
+                    $fabNav = [
+                        ['url' => route('forum.public'), 'icon' => 'forum', 'label' => 'Forum', 'color' => 'secondary'],
+                        ['url' => route('digital-lessons.public'), 'icon' => 'devices', 'label' => 'Pemb. Digital', 'color' => 'primary'],
+                        ['url' => route('toolkits.public'), 'icon' => 'calculate', 'label' => 'Toolkit', 'color' => 'math-teal'],
+                        ['url' => route('student-works.public'), 'icon' => 'auto_awesome_motion', 'label' => 'Karya Siswa', 'color' => 'status-warning'],
+                        ['url' => route('bank-soal.public'), 'icon' => 'quiz', 'label' => 'Bank Soal', 'color' => 'status-error'],
+                        ['url' => route('latihan.create'), 'icon' => 'history_edu', 'label' => 'Latihan', 'color' => 'status-success'],
+                    ];
+                @endphp
+                @foreach ($fabNav as $item)
+                <a href="{{ $item['url'] }}" class="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-surface-container transition-colors">
+                    <div class="w-11 h-11 rounded-2xl bg-{{ $item['color'] }}/10 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-{{ $item['color'] }} text-xl">{{ $item['icon'] }}</span>
+                    </div>
+                    <span class="text-[10px] font-medium text-navy-deep text-center leading-tight">{{ $item['label'] }}</span>
                 </a>
                 @endforeach
-            </nav>
-            <div class="p-3 border-t border-outline-variant">
-                <a href="{{ route('login') }}" class="flex items-center justify-center gap-2 bg-navy-deep text-white py-3 rounded-md font-bold text-sm">
-                    <span class="material-symbols-outlined text-[18px]">account_circle</span>
-                    Masuk
-                </a>
             </div>
         </div>
         @endguest
     @endguest
+
+    <script>
+        function openFabMenu() {
+            document.getElementById('fab-menu').classList.remove('hidden-fab');
+            document.getElementById('fab-backdrop').classList.remove('hidden');
+            document.getElementById('fab-icon').textContent = 'close';
+        }
+        function closeFabMenu() {
+            document.getElementById('fab-menu').classList.add('hidden-fab');
+            document.getElementById('fab-backdrop').classList.add('hidden');
+            document.getElementById('fab-icon').textContent = 'add';
+        }
+        function toggleFabMenu() {
+            const isHidden = document.getElementById('fab-menu').classList.contains('hidden-fab');
+            if (isHidden) openFabMenu(); else closeFabMenu();
+        }
+    </script>
+
+    <style>
+        #fab-menu { transition: opacity 0.2s ease, transform 0.2s ease; opacity: 1; transform: translate(-50%, 0) scale(1); }
+        #fab-menu.hidden-fab { display: none; opacity: 0; transform: translate(-50%, 12px) scale(0.95); }
+    </style>
 
     <main class="min-w-0">
         @yield('content')
@@ -237,43 +252,56 @@
                 <span class="material-symbols-outlined text-[22px]">home</span>
                 <span class="text-[10px] font-medium">Beranda</span>
             </a>
+
+            <a href="{{ route('teachers.public') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('teachers.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
+                <span class="material-symbols-outlined text-[22px]">person</span>
+                <span class="text-[10px] font-medium">Profil Guru</span>
+            </a>
+            
+
+            @guest('guru')
+                @guest('admin')
+                <button type="button" onclick="toggleFabMenu()" class="relative -mt-6">
+                    <div class="w-14 h-14 rounded-full bg-math-teal shadow-lg shadow-math-teal/40 flex items-center justify-center border-4 border-white">
+                        <span class="material-symbols-outlined text-white text-2xl transition-transform" id="fab-icon">add</span>
+                    </div>
+                </button>
+                @endguest
+            @endguest
+
             <a href="{{ route('materials.public') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('materials.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
                 <span class="material-symbols-outlined text-[22px]">book</span>
                 <span class="text-[10px] font-medium">Materi</span>
             </a>
-            <a href="{{ route('forum.public') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('forum.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
-                <span class="material-symbols-outlined text-[22px]">forum</span>
-                <span class="text-[10px] font-medium">Forum</span>
+
+            @guest('guru')
+                @guest('admin')
+                <a href="{{ route('login') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('login') ? 'text-math-teal' : 'text-on-surface-variant' }}">
+                    <span class="material-symbols-outlined text-[22px]">account_circle</span>
+                    <span class="text-[10px] font-medium">Masuk</span>
+                </a>
+                @endguest
+            @endguest
+
+            @auth('guru')
+            <a href="{{ route('guru.dashboard') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg text-math-teal">
+                <span class="material-symbols-outlined text-[22px]">dashboard</span>
+                <span class="text-[10px] font-medium">Dashboard</span>
             </a>
-            <a href="{{ route('latihan.create') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('latihan.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
-                <span class="material-symbols-outlined text-[22px]">history_edu</span>
-                <span class="text-[10px] font-medium">Latihan</span>
+            @endauth
+            @auth('admin')
+            <a href="{{ route('admin.dashboard') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg text-math-teal">
+                <span class="material-symbols-outlined text-[22px]">dashboard</span>
+                <span class="text-[10px] font-medium">Dashboard</span>
             </a>
-            <a href="{{ route('nilai.login') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('nilai.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
-                <span class="material-symbols-outlined text-[22px]">grade</span>
-                <span class="text-[10px] font-medium">Nilai</span>
-            </a>
+            @endauth
         </nav>
         @endguest
     @endguest
 
-    <script>
-        function openDrawer() {
-            document.getElementById('mobile-drawer').classList.remove('hidden-drawer');
-            document.getElementById('drawer-backdrop').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeDrawer() {
-            document.getElementById('mobile-drawer').classList.add('hidden-drawer');
-            document.getElementById('drawer-backdrop').classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-        const drawerToggle = document.getElementById('drawer-toggle');
-        if (drawerToggle) drawerToggle.addEventListener('click', openDrawer);
-    </script>
 
         {{-- Widget Asisten Pemandu --}}
-    <div id="assistant-widget" class="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50">
+    <div id="assistant-widget" class="fixed bottom-20 md:bottom-6 right-4 md:right-6" style="z-index: 2147483647; isolation: isolate;">
         <button id="assistant-toggle" class="w-14 h-14 rounded-full hero-gradient shadow-xl flex items-center justify-center text-white hover:scale-110 active:scale-95 transition-transform">
             <span class="material-symbols-outlined text-[26px]" id="assistant-icon">smart_toy</span>
         </button>

@@ -8,8 +8,14 @@
         0%, 100% { transform: translateY(0); }
         50% { transform: translateY(-12px); }
     }
-    .role-chip { transition: all 0.2s ease; }
-    .role-chip:hover { transform: translateY(-2px); }
+    .role-chip { transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .role-chip:hover { transform: translateY(-3px); }
+
+    @keyframes floatSymbol {
+        0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.5; }
+        50% { transform: translateY(-16px) rotate(6deg); opacity: 0.9; }
+    }
+    .login-symbol { animation: floatSymbol 7s ease-in-out infinite; }
 </style>
 @endpush
 
@@ -23,20 +29,20 @@
         <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-primary/40 rounded-full blur-[100px]"></div>
 
         <div class="absolute inset-0 overflow-hidden pointer-events-none">
-            <span class="floating-symbol absolute text-white/10 font-bold" style="left: 10%; top: 20%; font-size: 3rem;">∑</span>
-            <span class="floating-symbol absolute text-math-teal/20 font-bold" style="left: 80%; top: 25%; font-size: 2.5rem; animation-delay: 1.5s;">π</span>
-            <span class="floating-symbol absolute text-white/10 font-bold" style="left: 20%; top: 70%; font-size: 2rem; animation-delay: 3s;">√</span>
-            <span class="floating-symbol absolute text-math-teal/15 font-bold" style="left: 70%; top: 65%; font-size: 3.5rem; animation-delay: 0.8s;">∞</span>
+            <span class="login-symbol absolute text-white/10 font-bold" style="left: 10%; top: 20%; font-size: 3rem;">∑</span>
+            <span class="login-symbol absolute text-math-teal/20 font-bold" style="left: 80%; top: 25%; font-size: 2.5rem; animation-delay: 1.5s;">π</span>
+            <span class="login-symbol absolute text-white/10 font-bold" style="left: 15%; top: 72%; font-size: 2rem; animation-delay: 3s;">√</span>
+            <span class="login-symbol absolute text-math-teal/15 font-bold" style="left: 75%; top: 68%; font-size: 3.5rem; animation-delay: 0.8s;">∞</span>
         </div>
 
         <div class="relative z-10 max-w-md space-y-8">
-            <div class="login-float w-24 h-24 rounded-3xl bg-white/10 border border-white/20 flex items-center justify-center mx-auto backdrop-blur-sm shadow-2xl">
-                <span class="material-symbols-outlined text-math-teal text-5xl">functions</span>
+            <div class="login-float w-28 h-28 mx-auto flex items-center justify-center">
+                <img src="{{ asset('images/logo-sman1turen.png') }}" alt="Logo SMAN 1 Turen" class="w-full h-full object-contain drop-shadow-2xl">
             </div>
             <div>
                 <h1 class="font-headline text-3xl font-bold text-white mb-2">SMAN 1 Turen<br>Math Portal</h1>
                 <p class="text-white/70 text-sm leading-relaxed">
-                    Satu pintu masuk terpadu untuk Siswa, Guru, dan Admin. Sistem otomatis mengenali peran Anda.
+                    Satu pintu masuk terpadu untuk Siswa, Guru, dan Admin.
                 </p>
             </div>
 
@@ -65,8 +71,8 @@
         <div class="w-full max-w-sm">
 
             <div class="lg:hidden text-center mb-8">
-                <div class="w-16 h-16 rounded-2xl hero-gradient flex items-center justify-center mx-auto mb-3">
-                    <span class="material-symbols-outlined text-math-teal text-2xl">functions</span>
+                <div class="w-20 h-20 mx-auto mb-3">
+                    <img src="{{ asset('images/logo-sman1turen.png') }}" alt="Logo SMAN 1 Turen" class="w-full h-full object-contain">
                 </div>
             </div>
 
@@ -76,7 +82,7 @@
                     Area Terbatas
                 </span>
                 <h2 class="font-headline text-2xl font-bold text-navy-deep">Selamat Datang Kembali</h2>
-                <p class="text-on-surface-variant text-sm mt-1">Sistem otomatis mengenali peran dari data yang Anda masukkan.</p>
+                <p class="text-on-surface-variant text-sm mt-1">Warga Bumi Mitreka Eka Praya</p>
             </div>
 
             @if (session('error'))
@@ -105,7 +111,7 @@
                     </div>
                     <p class="text-[11px] text-on-surface-variant mt-1.5 flex items-center gap-1">
                         <span class="material-symbols-outlined text-[14px]">info</span>
-                        Guru/Admin: gunakan email. Siswa: gunakan NIS.
+                        Gunakan email sekolah untuk Guru dan NIS untuk Siswa.
                     </p>
                 </div>
 
@@ -119,7 +125,7 @@
                             <span class="material-symbols-outlined text-[20px]" id="toggle-icon">visibility</span>
                         </button>
                     </div>
-                    <p class="text-[11px] text-on-surface-variant mt-1.5">Siswa: password default sama dengan NIS jika belum pernah diganti.</p>
+                    <p class="text-[11px] text-on-surface-variant mt-1.5">Gunakan password yang diberikan oleh administrator.</p>
                 </div>
 
                 <label class="flex items-center gap-2 text-sm text-on-surface-variant cursor-pointer">
