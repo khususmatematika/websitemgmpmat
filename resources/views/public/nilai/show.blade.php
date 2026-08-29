@@ -4,42 +4,62 @@
 @section('content')
 <section class="py-16 px-margin-mobile md:px-margin-desktop max-w-3xl mx-auto">
 
-    <div class="bg-gradient-to-r hero-gradient rounded-xl p-6 mb-8 relative overflow-hidden">
+    <div class="hero-gradient rounded-2xl p-6 md:p-7 mb-6 relative overflow-hidden">
         <div class="absolute inset-0 math-pattern opacity-10"></div>
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-math-teal/20 rounded-full blur-3xl"></div>
+
         <div class="relative z-10 flex items-center justify-between flex-wrap gap-4">
             <div class="flex items-center gap-4">
-                <div class="w-14 h-14 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                <div class="w-14 h-14 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center backdrop-blur-sm shrink-0">
                     <span class="material-symbols-outlined text-math-teal text-2xl">school</span>
                 </div>
                 <div>
-                    <h1 class="font-headline text-xl font-bold text-black">{{ $student->name }}</h1>
-                    <p class="text-black/70 text-sm">NIS: {{ $student->nis }}</p>
+                    <h1 class="font-headline text-lg md:text-xl font-bold text-white">{{ $student->name }}</h1>
+                    <p class="text-white/60 text-xs md:text-sm mt-0.5">NIS: {{ $student->nis }}</p>
                 </div>
             </div>
             <div class="flex gap-2">
                 <a href="{{ route('nilai.password.edit') }}"
-                   class="flex items-center gap-1 bg-white/10 border border-white/20 text-black px-4 py-2 rounded-md text-sm font-bold hover:bg-white/20">
-                    <span class="material-symbols-outlined text-[18px]">lock</span>
-                    Ganti Password
+                class="flex items-center gap-1.5 bg-white/10 border border-white/20 text-white px-4 py-2 rounded-full text-xs md:text-sm font-bold hover:bg-white/20 transition-colors">
+                    <span class="material-symbols-outlined text-[16px] md:text-[18px]">lock</span>
+                    <span class="hidden sm:inline">Ganti Password</span>
                 </a>
                 <form method="POST" action="{{ route('nilai.logout') }}">
                     @csrf
-                    <button class="flex items-center gap-1 bg-status-error/90 text-white px-4 py-2 rounded-md text-sm font-bold hover:brightness-110">
-                        <span class="material-symbols-outlined text-[18px]">logout</span>
-                        Keluar
+                    <button class="flex items-center gap-1.5 bg-status-error/90 text-white px-4 py-2 rounded-full text-xs md:text-sm font-bold hover:brightness-110 transition-colors">
+                        <span class="material-symbols-outlined text-[16px] md:text-[18px]">logout</span>
+                        <span class="hidden sm:inline">Keluar</span>
                     </button>
                 </form>
             </div>
         </div>
     </div>
 
-   @if ($overallFinal !== null)
-    <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-4 mb-6 flex items-center justify-between">
-        <div>
-            <p class="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide">Nilai Akhir Keseluruhan</p>
-            <p class="text-[11px] text-on-surface-variant mt-0.5">Rata-rata dari {{ count($results) }} materi</p>
+    @if (session('status'))
+    <div class="mb-6 p-3 bg-status-success/10 text-status-success rounded-md text-sm">{{ session('status') }}</div>
+    @endif
+
+    @if ($overallByClass->count() > 0)
+    <div class="grid grid-cols-1 {{ $overallByClass->count() > 1 ? 'sm:grid-cols-2' : '' }} gap-3 mb-8">
+        @foreach ($overallByClass as $item)
+        @php
+            $avg = $item['average'];
+            $badgeColor = $avg >= 85 ? 'text-status-success' : ($avg >= 70 ? 'text-status-warning' : 'text-status-error');
+            $bgColor = $avg >= 85 ? 'bg-status-success/10' : ($avg >= 70 ? 'bg-status-warning/10' : 'bg-error-container');
+        @endphp
+        <div class="bg-white rounded-2xl shadow-sm border border-outline-variant/30 p-5 flex items-center justify-between hover:shadow-md transition-shadow">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-11 h-11 rounded-xl {{ $bgColor }} flex items-center justify-center shrink-0">
+                    <span class="material-symbols-outlined {{ $badgeColor }} text-xl">emoji_events</span>
+                </div>
+                <div class="min-w-0">
+                    <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Nilai Akhir &middot; {{ $item['class'] }}</p>
+                    <p class="text-[11px] text-on-surface-variant mt-0.5">Rata-rata dari {{ $item['topic_count'] }} materi</p>
+                </div>
+            </div>
+            <div class="text-2xl md:text-3xl font-bold {{ $badgeColor }} shrink-0 ml-3">{{ $avg }}</div>
         </div>
-        <div class="text-2xl font-bold text-blue-600">{{ $overallFinal }}</div>
+        @endforeach
     </div>
     @endif
 

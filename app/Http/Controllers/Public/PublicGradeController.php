@@ -204,14 +204,24 @@ class PublicGradeController extends Controller
             ];
         }
 
-        $validFinals = collect($results)->pluck('final')->filter(fn($v) => $v !== null);
-        $overallFinal = $validFinals->count() > 0 ? round($validFinals->avg(), 0) : null;
+        $overallByClass = collect($results)
+            ->groupBy('class')
+            ->map(function ($items, $className) {
+                $finals = $items->pluck('final')->filter(fn($v) => $v !== null);
+                return [
+                    'class' => $className,
+                    'average' => $finals->count() > 0 ? (int) round($finals->avg()) : null,
+                    'topic_count' => $items->count(),
+                ];
+            })
+            ->filter(fn($item) => $item['average'] !== null)
+            ->values();
 
         return view('public.nilai.show', [
             'student' => $student,
             'results' => $results,
             'attendanceSummary' => $attendanceSummary,
-            'overallFinal' => $overallFinal,
+            'overallByClass' => $overallByClass,
         ]);
     }
 

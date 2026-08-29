@@ -247,53 +247,71 @@
     {{-- Bottom Navigation Bar (mobile only, pengunjung publik) --}}
     @guest('guru')
         @guest('admin')
-        <nav class="fixed bottom-0 left-0 w-full z-40 md:hidden flex justify-around items-center px-2 py-2 pb-safe bg-white border-t border-outline-variant shadow-lg">
-            <a href="{{ route('home') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('home') ? 'text-math-teal' : 'text-on-surface-variant' }}">
+        <nav class="fixed bottom-0 left-0 w-full z-40 md:hidden grid grid-cols-5 items-center py-2 pb-safe bg-white border-t border-outline-variant shadow-lg">
+            <a href="{{ route('home') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 {{ request()->routeIs('home') ? 'text-math-teal' : 'text-on-surface-variant' }}">
                 <span class="material-symbols-outlined text-[22px]">home</span>
                 <span class="text-[10px] font-medium">Beranda</span>
             </a>
 
-            <a href="{{ route('teachers.public') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('teachers.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
-                <span class="material-symbols-outlined text-[22px]">person</span>
+            <a href="{{ route('teachers.public') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 {{ request()->routeIs('teachers.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
+                <span class="material-symbols-outlined text-[22px]">badge</span>
                 <span class="text-[10px] font-medium">Profil Guru</span>
             </a>
-            
 
-            @guest('guru')
-                @guest('admin')
-                <button type="button" onclick="toggleFabMenu()" class="relative -mt-6">
-                    <div class="w-14 h-14 rounded-full bg-math-teal shadow-lg shadow-math-teal/40 flex items-center justify-center border-4 border-white">
-                        <span class="material-symbols-outlined text-white text-2xl transition-transform" id="fab-icon">add</span>
-                    </div>
-                </button>
+            <div class="flex items-center justify-center">
+                @guest('guru')
+                    @guest('admin')
+                    <button type="button" onclick="toggleFabMenu()" class="relative -mt-6">
+                        <div class="w-14 h-14 rounded-full bg-math-teal shadow-lg shadow-math-teal/40 flex items-center justify-center border-4 border-white">
+                            <span class="material-symbols-outlined text-white text-2xl transition-transform" id="fab-icon">add</span>
+                        </div>
+                    </button>
+                    @endguest
                 @endguest
-            @endguest
+                @auth('guru')
+                    <a href="{{ route('guru.dashboard') }}" class="relative -mt-6">
+                        <div class="w-14 h-14 rounded-full bg-math-teal shadow-lg shadow-math-teal/40 flex items-center justify-center border-4 border-white">
+                            <span class="material-symbols-outlined text-white text-2xl">dashboard</span>
+                        </div>
+                    </a>
+                @endauth
+                @auth('admin')
+                    <a href="{{ route('admin.dashboard') }}" class="relative -mt-6">
+                        <div class="w-14 h-14 rounded-full bg-math-teal shadow-lg shadow-math-teal/40 flex items-center justify-center border-4 border-white">
+                            <span class="material-symbols-outlined text-white text-2xl">dashboard</span>
+                        </div>
+                    </a>
+                @endauth
+            </div>
 
-            <a href="{{ route('materials.public') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('materials.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
+            <a href="{{ route('materials.public') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 {{ request()->routeIs('materials.*') ? 'text-math-teal' : 'text-on-surface-variant' }}">
                 <span class="material-symbols-outlined text-[22px]">book</span>
                 <span class="text-[10px] font-medium">Materi</span>
             </a>
 
             @guest('guru')
                 @guest('admin')
-                <a href="{{ route('login') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg {{ request()->routeIs('login') ? 'text-math-teal' : 'text-on-surface-variant' }}">
+                <a href="{{ route('login') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 {{ request()->routeIs('login') ? 'text-math-teal' : 'text-on-surface-variant' }}">
                     <span class="material-symbols-outlined text-[22px]">account_circle</span>
-                    <span class="text-[10px] font-medium">Masuk</span>
+                    <span class="text-[10px] font-medium">Akun</span>
                 </a>
                 @endguest
             @endguest
 
             @auth('guru')
-            <a href="{{ route('guru.dashboard') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg text-math-teal">
-                <span class="material-symbols-outlined text-[22px]">dashboard</span>
-                <span class="text-[10px] font-medium">Dashboard</span>
+            <a href="{{ route('guru.profile.edit') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 text-on-surface-variant">
+                <span class="material-symbols-outlined text-[22px]">account_circle</span>
+                <span class="text-[10px] font-medium">Akun</span>
             </a>
             @endauth
             @auth('admin')
-            <a href="{{ route('admin.dashboard') }}" class="flex flex-col items-center justify-center gap-0.5 py-1 px-3 rounded-lg text-math-teal">
-                <span class="material-symbols-outlined text-[22px]">dashboard</span>
-                <span class="text-[10px] font-medium">Dashboard</span>
-            </a>
+            <form method="POST" action="{{ route('admin.logout') }}" class="flex items-center justify-center">
+                @csrf
+                <button class="flex flex-col items-center justify-center gap-0.5 py-1 text-status-error">
+                    <span class="material-symbols-outlined text-[22px]">logout</span>
+                    <span class="text-[10px] font-medium">Keluar</span>
+                </button>
+            </form>
             @endauth
         </nav>
         @endguest
