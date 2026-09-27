@@ -74,7 +74,13 @@
                         </button>
                     </div>
                 </div>
-                <iframe src="{{ $l->embed_url }}" class="flex-1 w-full" frameborder="0" allowfullscreen></iframe>
+                <div class="flex-1 w-full overflow-auto">
+                    @if ($l->input_type === 'code')
+                        {!! $l->embed_code !!}
+                    @else
+                        <iframe src="{{ $l->embed_url }}" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
+                    @endif
+                </div>
             </div>
         </div>
         @empty

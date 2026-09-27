@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class ForumPost extends Model
 {
-    protected $fillable = ['author_name', 'content', 'image_path'];
+    protected $fillable = ['author_name', 'actor_type', 'owner_id', 'content', 'image_path'];
 
     public function comments(): HasMany
     {

@@ -1,5 +1,5 @@
 @extends('layouts.dashboard')
-@section('title', 'Tambah Pembelajaran Digital')
+@section('title', 'Edit Pembelajaran Digital')
 
 @section('dashboard-content')
 <a href="{{ route('admin.pembelajaran-digital.index') }}" class="inline-flex items-center gap-1 text-sm font-bold text-on-surface-variant hover:text-math-teal mb-4">
@@ -7,7 +7,7 @@
     Kembali
 </a>
 
-<h1 class="font-headline text-2xl font-bold text-navy-deep mb-6">Tambah Media Pembelajaran Digital</h1>
+<h1 class="font-headline text-2xl font-bold text-navy-deep mb-6">Edit Media Pembelajaran Digital</h1>
 
 @if ($errors->any())
 <div class="mb-4 p-3 bg-error-container text-status-error rounded-md text-sm">
@@ -15,17 +15,18 @@
 </div>
 @endif
 
-<form method="POST" action="{{ route('admin.pembelajaran-digital.store') }}" class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6 space-y-4 max-w-xl">
+<form method="POST" action="{{ route('admin.pembelajaran-digital.update', $lesson) }}" class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6 space-y-4 max-w-xl">
     @csrf
+    @method('PUT')
     <div>
         <label class="text-sm font-medium">Judul Media</label>
-        <input name="title" required placeholder="mis. Video Trigonometri Dasar" value="{{ old('title') }}" class="mt-1 w-full rounded-md border-outline-variant">
+        <input name="title" required value="{{ old('title', $lesson->title) }}" class="mt-1 w-full rounded-md border-outline-variant">
     </div>
     <div>
         <label class="text-sm font-medium">Jenjang</label>
         <select name="jenjang" required class="mt-1 w-full rounded-md border-outline-variant">
             @foreach ($jenjangList as $key => $label)
-                <option value="{{ $key }}">{{ $label }}</option>
+                <option value="{{ $key }}" {{ old('jenjang', $lesson->jenjang) == $key ? 'selected' : '' }}>{{ $label }}</option>
             @endforeach
         </select>
     </div>
@@ -34,29 +35,27 @@
         <label class="text-sm font-medium block mb-2">Sumber Media</label>
         <div class="flex gap-3 mb-4">
             <label class="flex-1 flex items-center gap-2 border border-outline-variant rounded-md p-3 cursor-pointer has-[:checked]:border-math-teal has-[:checked]:bg-math-teal/5">
-                <input type="radio" name="input_type" value="url" id="type-url" onchange="toggleInputType()" {{ old('input_type', 'url') == 'url' ? 'checked' : '' }} class="text-math-teal">
+                <input type="radio" name="input_type" value="url" id="type-url" onchange="toggleInputType()" {{ old('input_type', $lesson->input_type) == 'url' ? 'checked' : '' }} class="text-math-teal">
                 <span class="text-sm font-medium">Gunakan URL</span>
             </label>
             <label class="flex-1 flex items-center gap-2 border border-outline-variant rounded-md p-3 cursor-pointer has-[:checked]:border-math-teal has-[:checked]:bg-math-teal/5">
-                <input type="radio" name="input_type" value="code" id="type-code" onchange="toggleInputType()" {{ old('input_type') == 'code' ? 'checked' : '' }} class="text-math-teal">
+                <input type="radio" name="input_type" value="code" id="type-code" onchange="toggleInputType()" {{ old('input_type', $lesson->input_type) == 'code' ? 'checked' : '' }} class="text-math-teal">
                 <span class="text-sm font-medium">Tempel Kode Embed</span>
             </label>
         </div>
 
-        <div id="field-url" class="{{ old('input_type', 'url') == 'code' ? 'hidden' : '' }}">
+        <div id="field-url" class="{{ old('input_type', $lesson->input_type) == 'code' ? 'hidden' : '' }}">
             <label class="text-sm font-medium">URL</label>
-            <input type="url" name="embed_url" placeholder="https://www.youtube.com/embed/..." value="{{ old('embed_url') }}" class="mt-1 w-full rounded-md border-outline-variant">
-            <p class="text-xs text-on-surface-variant mt-1">Link akan dimasukkan ke dalam iframe otomatis.</p>
+            <input type="url" name="embed_url" value="{{ old('embed_url', $lesson->embed_url) }}" class="mt-1 w-full rounded-md border-outline-variant">
         </div>
 
-        <div id="field-code" class="{{ old('input_type') != 'code' ? 'hidden' : '' }}">
+        <div id="field-code" class="{{ old('input_type', $lesson->input_type) != 'code' ? 'hidden' : '' }}">
             <label class="text-sm font-medium">Kode Embed (HTML)</label>
-            <textarea name="embed_code" rows="6" placeholder="&lt;iframe src=&quot;...&quot;&gt;&lt;/iframe&gt;" class="mt-1 w-full rounded-md border-outline-variant font-mono text-xs">{{ old('embed_code') }}</textarea>
-            <p class="text-xs text-on-surface-variant mt-1">Tempel kode HTML/iframe/script lengkap dari penyedia video/simulasi (mis. YouTube, GeoGebra, PhET).</p>
+            <textarea name="embed_code" rows="6" class="mt-1 w-full rounded-md border-outline-variant font-mono text-xs">{{ old('embed_code', $lesson->embed_code) }}</textarea>
         </div>
     </div>
 
-    <button class="bg-math-teal text-white px-6 py-3 rounded-md font-bold">Simpan</button>
+    <button class="bg-math-teal text-white px-6 py-3 rounded-md font-bold">Simpan Perubahan</button>
 </form>
 
 <script>

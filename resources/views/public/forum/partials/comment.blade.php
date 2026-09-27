@@ -1,7 +1,7 @@
 <div style="margin-left: {{ min($depth, 4) * 28 }}px" class="{{ $depth > 0 ? 'mt-2' : '' }}">
     <div class="flex justify-between items-start gap-2 rounded-lg p-3 border-l-4
                 {{ $depth > 0 ? 'bg-surface-container border-math-teal/40' : 'bg-surface-container-low border-navy-deep/20' }}">
-        <div class="flex-1 min-w-0">
+        <div class="flex-1 min-w-0" id="comment-view-{{ $comment->id }}">
             @if ($depth > 0 && $comment->parent)
                 <p class="text-[11px] text-math-teal font-bold flex items-center gap-1 mb-1">
                     <span class="material-symbols-outlined text-[14px]">subdirectory_arrow_right</span>
@@ -32,6 +32,33 @@
                 <button type="button" onclick="document.getElementById('reply-form-{{ $comment->id }}').classList.toggle('hidden')"
                         class="text-xs font-bold text-math-teal">Balas</button>
                 @endif
+                @if ($currentActor && $comment->owner_id == $currentActor['id'] && $comment->actor_type === $currentActor['type'])
+                <button type="button" onclick="toggleCommentEdit({{ $comment->id }})" class="text-xs font-bold text-navy-deep">Edit</button>
+                <button type="button" onclick="deleteComment({{ $comment->id }}, '{{ route('forum.comments.destroy', $comment) }}')" class="text-xs font-bold text-status-error">Hapus</button>
+                @endif
+                @if ($isAdmin)
+                <button type="button" onclick="deleteComment({{ $comment->id }}, '{{ route('forum.comments.destroy', $comment) }}')" class="text-xs font-bold text-status-error flex items-center gap-0.5">
+                    <span class="material-symbols-outlined text-[13px]">admin_panel_settings</span> Hapus
+                </button>
+                @endif
+            </div>
+
+            {{-- Form Edit Inline --}}
+            <div id="comment-edit-{{ $comment->id }}" class="hidden mt-2">
+                <form action="{{ route('forum.comments.update', $comment) }}" method="POST" enctype="multipart/form-data" class="space-y-2 bg-white border border-outline-variant rounded-lg p-3">
+                    @csrf @method('PUT')
+                    <textarea name="content" rows="2" class="w-full text-sm rounded-md border-outline-variant">{{ $comment->content }}</textarea>
+                    @if ($comment->image_path)
+                    <label class="flex items-center gap-1 text-xs text-status-error">
+                        <input type="checkbox" name="remove_image" value="1" class="rounded border-outline-variant">
+                        Hapus foto saat ini
+                    </label>
+                    @endif
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="toggleCommentEdit({{ $comment->id }})" class="text-xs font-bold text-on-surface-variant">Batal</button>
+                        <button class="ml-auto bg-navy-deep text-white text-xs font-bold px-4 py-2 rounded-md">Simpan</button>
+                    </div>
+                </form>
             </div>
         </div>
         <button type="button" onclick="document.getElementById('report-comment-{{ $comment->id }}').classList.toggle('hidden')"
@@ -70,6 +97,31 @@
     @endif
 
     @foreach ($comment->repliesRecursive as $reply)
-        @include('public.forum.partials.comment', ['comment' => $reply, 'post' => $post, 'reasons' => $reasons, 'depth' => $depth + 1, 'identifier' => $identifier, 'isLoggedIn' => $isLoggedIn])
+        @include('public.forum.partials.comment', ['comment' => $reply, 'post' => $post, 'reasons' => $reasons, 'depth' => $depth + 1, 'identifier' => $identifier, 'isLoggedIn' => $isLoggedIn, 'currentActor' => $currentActor, 'isAdmin' => $isAdmin])
     @endforeach
 </div>
+
+<script>
+function toggleCommentEdit(id) {
+    document.getElementById('comment-edit-' + id).classList.toggle('hidden');
+}
+
+async function deleteComment(id, url) {
+    if (!confirm('Hapus komentar ini?')) return;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    try {
+        const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'X-HTTP-Method-Override': 'DELETE' },
+        });
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert('Gagal menghapus komentar.');
+        }
+    } catch (err) {
+        alert('Terjadi kesalahan.');
+    }
+}
+</script>

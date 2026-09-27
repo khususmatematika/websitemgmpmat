@@ -44,8 +44,23 @@
                     </p>
                     <p class="text-xs text-on-surface-variant">{{ $post->created_at->diffForHumans() }}</p>
                 </div>
-                <button onclick="document.getElementById('report-post-{{ $post->id }}').classList.toggle('hidden')"
-                        class="material-symbols-outlined text-[18px] text-on-surface-variant hover:text-status-error ml-auto">flag</button>
+                <div class="flex items-center gap-1 ml-auto">
+    @if ($currentActor && $post->owner_id == $currentActor['id'] && $post->actor_type === $currentActor['type'])
+    <a href="{{ route('forum.posts.edit', $post) }}" class="material-symbols-outlined text-[18px] text-on-surface-variant hover:text-math-teal" title="Edit">edit</a>
+    <form action="{{ route('forum.posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Hapus postingan ini?')">
+        @csrf @method('DELETE')
+        <button type="submit" class="material-symbols-outlined text-[18px] text-on-surface-variant hover:text-status-error" title="Hapus">delete</button>
+    </form>
+    @endif
+    @if ($isAdmin)
+    <form action="{{ route('forum.posts.destroy', $post) }}" method="POST" onsubmit="return confirm('Hapus postingan ini sebagai Admin?')">
+        @csrf @method('DELETE')
+        <button type="submit" class="material-symbols-outlined text-[18px] text-status-error hover:text-status-error/70" title="Hapus (Admin)">admin_panel_settings</button>
+    </form>
+    @endif
+    <button onclick="document.getElementById('report-post-{{ $post->id }}').classList.toggle('hidden')"
+            class="material-symbols-outlined text-[18px] text-on-surface-variant hover:text-status-error" title="Laporkan">flag</button>
+</div>
             </div>
 
             <p class="text-sm text-on-surface whitespace-pre-line mb-3">{{ $post->content }}</p>
@@ -85,7 +100,7 @@
 
             <div id="comments-{{ $post->id }}" class="hidden mt-4 pt-4 border-t border-outline-variant space-y-3">
                 @forelse ($post->comments as $comment)
-                    @include('public.forum.partials.comment', ['comment' => $comment, 'post' => $post, 'reasons' => $reasons, 'depth' => 0, 'identifier' => $identifier, 'isLoggedIn' => $isLoggedIn])
+                    @include('public.forum.partials.comment', ['comment' => $comment, 'post' => $post, 'reasons' => $reasons, 'depth' => 0, 'identifier' => $identifier, 'isLoggedIn' => $isLoggedIn, 'currentActor' => $currentActor, 'isAdmin' => $isAdmin])
                 @empty
                     <p class="text-xs text-on-surface-variant">Belum ada komentar.</p>
                 @endforelse

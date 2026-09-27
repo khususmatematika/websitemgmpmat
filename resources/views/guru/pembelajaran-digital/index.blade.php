@@ -19,13 +19,16 @@
         <div class="aspect-video bg-surface-container">
             <iframe src="{{ $l->embed_url }}" class="w-full h-full" frameborder="0" allowfullscreen></iframe>
         </div>
+       
         <div class="p-4">
             <h3 class="font-bold text-navy-deep">{{ $l->title }}</h3>
             <p class="text-xs text-on-surface-variant mb-3">{{ $l->jenjang }} &middot; {{ $l->topic }}</p>
+             <a href="{{ route('guru.pembelajaran-digital.edit', $l) }}" class="text-math-teal text-sm font-bold">Edit</a>
             <form action="{{ route('guru.pembelajaran-digital.destroy', $l) }}" method="POST" onsubmit="return confirm('Hapus media ini?')">
                 @csrf @method('DELETE')
                 <button class="text-status-error text-sm font-bold">Hapus</button>
             </form>
+            
         </div>
     </div>
     @empty

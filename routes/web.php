@@ -75,6 +75,13 @@ Route::post('/forum/posts/{post}/comment', [ForumController::class, 'comment'])-
 Route::post('/forum/posts/{post}/report', [ForumController::class, 'reportPost'])->name('forum.posts.report');
 Route::post('/forum/comments/{comment}/report', [ForumController::class, 'reportComment'])->name('forum.comments.report');
 
+Route::get('/forum/posts/{post}/edit', [ForumController::class, 'editPost'])->name('forum.posts.edit');
+Route::put('/forum/posts/{post}', [ForumController::class, 'updatePost'])->name('forum.posts.update');
+Route::delete('/forum/posts/{post}', [ForumController::class, 'destroyPost'])->name('forum.posts.destroy');
+
+Route::put('/forum/comments/{comment}', [ForumController::class, 'updateComment'])->name('forum.comments.update');
+Route::delete('/forum/comments/{comment}', [ForumController::class, 'destroyComment'])->name('forum.comments.destroy');
+
 // ================= PUBLIK: Bank Soal & Latihan =================
 Route::get('/bank-soal', [BankSoalController::class, 'index'])->name('bank-soal.public');
 Route::post('/bank-soal/generate', [BankSoalController::class, 'generate'])->name('bank-soal.generate');
