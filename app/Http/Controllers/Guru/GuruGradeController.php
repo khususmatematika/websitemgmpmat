@@ -66,7 +66,6 @@ class GuruGradeController extends Controller
         $class = SchoolClass::findOrFail($classId);
         $topic = MaterialTopic::findOrFail($materialTopicId);
 
-        // Ambil siswa LANGSUNG dari tabel students, urut nama, tidak lewat relasi Eloquent sama sekali
         $students = \App\Models\Student::whereHas('classes', function ($q) use ($classId) {
             $q->where('classes.id', $classId);
         })->orderBy('name')->get();
@@ -103,6 +102,8 @@ class GuruGradeController extends Controller
             ->get()
             ->keyBy('student_id');
 
+        $isPublished = \App\Models\GradePublication::isPublished($classId, $materialTopicId);
+
         return view('guru.nilai.manage', [
             'class' => $class,
             'topic' => $topic,
@@ -111,6 +112,7 @@ class GuruGradeController extends Controller
             'attendancePercent' => $attendancePercent,
             'existingScores' => $existingScores,
             'adjustments' => $adjustments,
+            'isPublished' => $isPublished,
         ] + $this->nav());
     }
 
@@ -240,13 +242,7 @@ class GuruGradeController extends Controller
         $classId = $request->get('class_id');
         $materialTopicId = $request->get('material_topic_id');
 
-        $class = SchoolClass::findOrFail($classId);
-
-        $orderedStudents = \App\Models\Student::whereHas('classes', function ($q) use ($classId) {
-            $q->where('classes.id', $classId);
-        })->orderBy('name')->get();
-
-        $class->setRelation('students', $orderedStudents);
+        $class = SchoolClass::with('students')->findOrFail($classId);
         $topic = MaterialTopic::findOrFail($materialTopicId);
 
         $components = AssessmentComponent::where('teacher_id', $teacherId)
@@ -284,7 +280,7 @@ class GuruGradeController extends Controller
                         ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
                     $hadir = (int) ($counts['Hadir'] ?? 0);
                     $total = array_sum($counts->toArray());
-                    $final = $totalWeight > 0 ? round(($weightedSum / $totalWeight) + $bonus - $deduction, 2) : '-';
+                    $score = $total > 0 ? (int) round(($hadir / $total) * 100) : 0;
                 } else {
                     $score = StudentScore::where('assessment_component_id', $c->id)
                         ->where('student_id', $student->id)->value('score');
@@ -304,7 +300,7 @@ class GuruGradeController extends Controller
             $sheet->setCellValue([$col++, $row], $bonus);
             $sheet->setCellValue([$col++, $row], $deduction);
 
-            $final = $totalWeight > 0 ? round(($weightedSum / $totalWeight) + $bonus - $deduction, 2) : '-';
+            $final = $totalWeight > 0 ? (int) round(($weightedSum / $totalWeight) + $bonus - $deduction) : '-';
             $sheet->setCellValue([$col, $row], $final);
             $row++;
         }

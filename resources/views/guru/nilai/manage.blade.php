@@ -12,6 +12,7 @@
         -moz-appearance: textfield;
     }
 </style>
+
 <a href="{{ route('guru.nilai.index') }}" class="inline-flex items-center gap-1 text-sm font-bold text-on-surface-variant hover:text-math-teal mb-2">
     <span class="material-symbols-outlined text-[18px]">arrow_back</span>
     Kembali Pilih Kelas/Materi
@@ -22,11 +23,25 @@
         <h1 class="font-headline text-2xl font-bold text-navy-deep">{{ $topic->title }}</h1>
         <p class="text-on-surface-variant text-sm">{{ $class->name }}</p>
     </div>
-    <a href="{{ route('guru.nilai.export', ['class_id' => $class->id, 'material_topic_id' => $topic->id]) }}"
-       class="flex items-center gap-2 bg-navy-deep text-white px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-colors whitespace-nowrap">
-        <span class="material-symbols-outlined text-[18px]">download</span>
-        Download Excel
-    </a>
+    <div class="flex flex-wrap gap-2">
+        <form method="POST" action="{{ route('guru.nilai.publish.toggle') }}">
+            @csrf
+            <input type="hidden" name="class_id" value="{{ $class->id }}">
+            <input type="hidden" name="material_topic_id" value="{{ $topic->id }}">
+            <button type="submit"
+                    class="flex items-center gap-2 px-4 py-2 rounded-md font-bold text-sm whitespace-nowrap
+                           {{ $isPublished ? 'bg-status-success text-white' : 'bg-surface-container text-on-surface-variant' }}">
+                <span class="material-symbols-outlined text-[18px]">{{ $isPublished ? 'visibility' : 'visibility_off' }}</span>
+                {{ $isPublished ? 'Nilai Kelas Aktif' : 'Nilai Kelas Nonaktif' }}
+            </button>
+        </form>
+
+        <a href="{{ route('guru.nilai.export', ['class_id' => $class->id, 'material_topic_id' => $topic->id]) }}"
+           class="flex items-center gap-2 bg-navy-deep text-white px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-colors whitespace-nowrap">
+            <span class="material-symbols-outlined text-[18px]">download</span>
+            Download Excel
+        </a>
+    </div>
 </div>
 
 @if (session('status'))
@@ -42,7 +57,7 @@
         <input type="hidden" name="class_id" value="{{ $class->id }}">
         <input type="hidden" name="material_topic_id" value="{{ $topic->id }}">
         <input type="text" name="name" required placeholder="mis. Tugas Harian, UH, UTS" class="rounded-md border-outline-variant text-sm flex-1">
-        <input type="number" name="weight" required min="0" max="100" step="0.01" placeholder="Bobot %" class="rounded-md border-outline-variant text-sm w-32">
+        <input type="number" name="weight" required min="0" max="100" step="1" placeholder="Bobot %" class="no-spinner rounded-md border-outline-variant text-sm w-32">
         <label class="flex items-center gap-2 text-sm whitespace-nowrap">
             <input type="checkbox" name="is_attendance" value="1" class="rounded border-outline-variant">
             Ambil dari Kehadiran
@@ -55,7 +70,7 @@
         <span class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full text-xs">
             <button type="button" onclick="openEditComponent({{ $c->id }}, '{{ addslashes($c->name) }}', {{ $c->weight }}, {{ $c->is_attendance ? 'true' : 'false' }})"
                     class="hover:underline {{ $c->is_attendance ? 'cursor-not-allowed opacity-70' : '' }}"
-                    {{ $c->is_attendance ? 'disabled title="Bobot kehadiran otomatis"' : '' }}>
+                    {{ $c->is_attendance ? 'disabled title="Bobot kehadiran otomatis, tidak bisa diubah manual"' : '' }}>
                 {{ $c->name }} ({{ $c->weight }}%) {{ $c->is_attendance ? '— otomatis' : '' }}
             </button>
             <form action="{{ route('guru.nilai.component.destroy', $c) }}" method="POST" onsubmit="return confirm('Hapus jenis penilaian ini? Nilai yang sudah diinput ikut terhapus.')">
@@ -67,6 +82,7 @@
     </div>
 </div>
 
+{{-- Modal Edit Bobot --}}
 <div id="edit-component-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl w-full max-w-sm p-6">
         <h3 class="font-headline text-lg font-bold text-navy-deep mb-4">Edit Jenis Penilaian</h3>
@@ -80,7 +96,7 @@
                 </div>
                 <div>
                     <label class="text-sm font-medium">Bobot (%)</label>
-                    <input type="number" name="weight" id="edit-weight" required min="0" max="100" step="0.01" class="mt-1 w-full rounded-md border-outline-variant text-sm">
+                    <input type="number" name="weight" id="edit-weight" required min="0" max="100" step="1" class="no-spinner mt-1 w-full rounded-md border-outline-variant text-sm">
                 </div>
             </div>
             <div class="flex gap-2 mt-6">
@@ -91,7 +107,7 @@
     </div>
 </div>
 
-{{-- Tabel Input Nilai + Tambahan/Pengurangan (1 form gabungan) --}}
+{{-- Tabel Input Nilai + Tambahan/Pengurangan --}}
 @if ($components->count() > 0)
 <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6">
     <div class="flex items-center justify-between mb-4">
@@ -132,26 +148,26 @@
                                     $existing = $existingScores[$c->id][$student->id]->score ?? '';
                                 @endphp
                                 <input type="number" step="1" min="0" max="100"
-                                    name="scores[{{ $c->id }}][{{ $student->id }}]"
-                                    value="{{ $existing !== '' ? (int) round($existing) : '' }}"
-                                    data-col="{{ $c->id }}" data-row="{{ $rowIndex }}"
-                                    class="score-input no-spinner w-20 text-center rounded-md border-outline-variant text-sm">
+                                       name="scores[{{ $c->id }}][{{ $student->id }}]"
+                                       value="{{ $existing !== '' ? (int) round($existing) : '' }}"
+                                       data-col="{{ $c->id }}" data-row="{{ $rowIndex }}"
+                                       class="score-input no-spinner w-20 text-center rounded-md border-outline-variant text-sm">
                             @endif
                         </td>
                         @endforeach
                         <td class="p-2 text-center">
                             <input type="number" step="1" min="0"
-                                name="adjustments[{{ $student->id }}][bonus]"
-                                value="{{ (int) round($adjustments[$student->id]->bonus ?? 0) }}"
-                                data-row="{{ $rowIndex }}" data-type="bonus"
-                                class="adjustment-input no-spinner w-16 text-center rounded-md border-status-success/40 text-sm text-status-success font-bold bg-status-success/5">
+                                   name="adjustments[{{ $student->id }}][bonus]"
+                                   value="{{ (int) round($adjustments[$student->id]->bonus ?? 0) }}"
+                                   data-row="{{ $rowIndex }}" data-type="bonus"
+                                   class="adjustment-input no-spinner w-16 text-center rounded-md border-status-success/40 text-sm text-status-success font-bold bg-status-success/5">
                         </td>
                         <td class="p-2 text-center">
                             <input type="number" step="1" min="0"
                                    name="adjustments[{{ $student->id }}][deduction]"
                                    value="{{ (int) round($adjustments[$student->id]->deduction ?? 0) }}"
                                    data-row="{{ $rowIndex }}" data-type="deduction"
-                                   class="adjustment-input w-16 text-center rounded-md border-status-error/40 text-sm text-status-error font-bold bg-error-container/10">
+                                   class="adjustment-input no-spinner w-16 text-center rounded-md border-status-error/40 text-sm text-status-error font-bold bg-error-container/10">
                         </td>
                         <td class="p-2 text-center font-bold text-navy-deep final-grade" data-row="{{ $rowIndex }}">-</td>
                     </tr>
