@@ -40,28 +40,82 @@
     @endif
 
     @if ($overallByClass->count() > 0)
-    <div class="grid grid-cols-1 {{ $overallByClass->count() > 1 ? 'sm:grid-cols-2' : '' }} gap-3 mb-8">
-        @foreach ($overallByClass as $item)
-        @php
-            $avg = $item['average'];
-            $badgeColor = $avg >= 85 ? 'text-status-success' : ($avg >= 70 ? 'text-status-warning' : 'text-status-error');
-            $bgColor = $avg >= 85 ? 'bg-status-success/10' : ($avg >= 70 ? 'bg-status-warning/10' : 'bg-error-container');
-        @endphp
-        <div class="bg-white rounded-2xl shadow-sm border border-outline-variant/30 p-5 flex items-center justify-between hover:shadow-md transition-shadow">
-            <div class="flex items-center gap-3 min-w-0">
-                <div class="w-11 h-11 rounded-xl {{ $bgColor }} flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined {{ $badgeColor }} text-xl">emoji_events</span>
-                </div>
-                <div class="min-w-0">
-                    <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Nilai Akhir &middot; {{ $item['class'] }}</p>
-                    <p class="text-[11px] text-on-surface-variant mt-0.5">Rata-rata dari {{ $item['topic_count'] }} materi</p>
+        <div class="grid grid-cols-1 {{ $overallByClass->count() > 1 ? 'md:grid-cols-2' : '' }} gap-3 mb-8 items-start">
+            @foreach ($overallByClass as $idx => $item)
+            @php
+                $avg = $item['average'];
+                $badgeColor = $avg >= 85 ? 'text-status-success' : ($avg >= 70 ? 'text-status-warning' : 'text-status-error');
+                $bgColor = $avg >= 85 ? 'bg-status-success/10' : ($avg >= 70 ? 'bg-status-warning/10' : 'bg-error-container');
+                $topicWeightSum = collect($item['topics'])->sum('weight');
+                $totalWeight = $topicWeightSum + $item['asas_weight'];
+            @endphp
+            <div class="bg-white rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden">
+                <button type="button" onclick="toggleRecap({{ $idx }})"
+                        class="w-full p-5 flex items-center justify-between text-left hover:bg-surface-container-low transition-colors">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-11 h-11 rounded-xl {{ $bgColor }} flex items-center justify-center shrink-0">
+                            <span class="material-symbols-outlined {{ $badgeColor }} text-xl">emoji_events</span>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Nilai Akhir Semester &middot; {{ $item['class'] }}</p>
+                            <p class="text-[11px] text-on-surface-variant mt-0.5">Klik untuk melihat rincian</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0 ml-3">
+                        <span class="text-2xl md:text-3xl font-bold {{ $badgeColor }}">{{ $avg }}</span>
+                        <span id="recap-icon-{{ $idx }}" class="material-symbols-outlined text-on-surface-variant transition-transform">expand_more</span>
+                    </div>
+                </button>
+
+                <div id="recap-detail-{{ $idx }}" class="hidden border-t border-outline-variant px-5 py-4 space-y-3">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="text-on-surface-variant text-xs">
+                                <tr>
+                                    <th class="py-2 text-left font-medium">Komponen</th>
+                                    <th class="py-2 text-center font-medium">Nilai</th>
+                                    <th class="py-2 text-center font-medium">Bobot</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($item['topics'] as $t)
+                                <tr class="border-t border-outline-variant/50">
+                                    <td class="py-2 text-navy-deep">{{ $t['title'] }}</td>
+                                    <td class="py-2 text-center font-bold">{{ $t['score'] ?? '-' }}</td>
+                                    <td class="py-2 text-center text-on-surface-variant">{{ rtrim(rtrim(number_format($t['weight'], 2, '.', ''), '0'), '.') }}</td>
+                                </tr>
+                                @endforeach
+                                <tr class="border-t border-outline-variant/50 bg-status-warning/5">
+                                    <td class="py-2 font-bold text-navy-deep">ASAS</td>
+                                    <td class="py-2 text-center font-bold">{{ $item['asas'] ?? '-' }}</td>
+                                    <td class="py-2 text-center text-on-surface-variant">{{ rtrim(rtrim(number_format($item['asas_weight'], 2, '.', ''), '0'), '.') ?: 0 }}</td>
+                                </tr>
+                            </tbody>
+                            <tfoot>
+                                <tr class="border-t-2 border-outline-variant">
+                                    <td class="py-2 font-bold text-navy-deep">Nilai Akhir</td>
+                                    <td class="py-2 text-center font-bold {{ $badgeColor }}">{{ $avg }}</td>
+                                    <td class="py-2 text-center text-on-surface-variant">{{ rtrim(rtrim(number_format($totalWeight, 2, '.', ''), '0'), '.') }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    <p class="text-[11px] text-on-surface-variant">
+                        Nilai akhir = (jumlah nilai x bobot) / total bobot. Komponen yang belum ada nilainya dihitung 0.
+                    </p>
                 </div>
             </div>
-            <div class="text-2xl md:text-3xl font-bold {{ $badgeColor }} shrink-0 ml-3">{{ $avg }}</div>
+            @endforeach
         </div>
-        @endforeach
-    </div>
-    @endif
+
+        <script>
+        function toggleRecap(i) {
+            document.getElementById('recap-detail-' + i).classList.toggle('hidden');
+            const icon = document.getElementById('recap-icon-' + i);
+            icon.style.transform = icon.style.transform === 'rotate(180deg)' ? '' : 'rotate(180deg)';
+        }
+        </script>
+        @endif
 
     @if (count($attendanceSummary) > 0)
         <h2 class="font-headline text-lg font-bold text-navy-deep mb-4">Rekap Kehadiran</h2>

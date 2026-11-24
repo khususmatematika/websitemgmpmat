@@ -76,9 +76,7 @@ class GuruGradeController extends Controller
             ->orderBy('order_index')
             ->get();
 
-        $journalIds = TeachingJournal::where('teacher_id', $teacherId)
-            ->where('class_id', $classId)
-            ->pluck('id');
+        $journalIds = \App\Support\TopicJournals::ids((int) $classId, $topic, null, $teacherId);
 
         $attendancePercent = [];
         foreach ($students as $student) {
@@ -250,7 +248,7 @@ class GuruGradeController extends Controller
             ->where('material_topic_id', $materialTopicId)
             ->orderBy('order_index')->get();
 
-        $journalIds = TeachingJournal::where('teacher_id', $teacherId)->where('class_id', $classId)->pluck('id');
+        $journalIds = \App\Support\TopicJournals::ids((int) $classId, $topic, null, $teacherId);
         $totalWeight = $components->sum('weight');
 
         $spreadsheet = new Spreadsheet();

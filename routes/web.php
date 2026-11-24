@@ -34,6 +34,7 @@ use App\Http\Controllers\Admin\AdminStudentController;
 use App\Http\Controllers\Admin\AdminClassController;
 use App\Http\Controllers\Admin\AdminLetterheadController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Guru\GuruRecapController;
 
 // ================= BERANDA =================
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -150,6 +151,11 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::put('/nilai/komponen/{assessmentComponent}', [GuruGradeController::class, 'updateComponent'])->name('nilai.component.update');
 
         Route::post('/nilai/adjustment', [GuruGradeController::class, 'saveAdjustments'])->name('nilai.adjustment.save');
+
+        Route::get('/rekap-nilai', [GuruRecapController::class, 'index'])->name('rekap.index');
+        Route::get('/rekap-nilai/{kelas}', [GuruRecapController::class, 'show'])->name('rekap.show');
+        Route::post('/rekap-nilai/{kelas}', [GuruRecapController::class, 'save'])->name('rekap.save');
+        Route::get('/rekap-nilai/{kelas}/export', [GuruRecapController::class, 'export'])->name('rekap.export');
     });
 });
 

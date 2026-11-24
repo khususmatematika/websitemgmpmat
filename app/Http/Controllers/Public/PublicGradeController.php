@@ -8,6 +8,8 @@ use App\Models\MaterialTopic;
 use App\Models\Student;
 use App\Models\StudentScore;
 use App\Models\TeachingJournal;
+use App\Services\GradeCalculator;
+use App\Support\TopicJournals;
 use Illuminate\Http\Request;
 
 class PublicGradeController extends Controller
@@ -53,10 +55,13 @@ class PublicGradeController extends Controller
 
         $results = [];
 
-        foreach ($student->classes as $class) {
+        foreach ($student->classes->sortBy('name') as $class) {
             $componentsByTopic = AssessmentComponent::where('class_id', $class->id)
+                ->orderBy('order_index')
                 ->get()
                 ->groupBy('material_topic_id');
+
+            $classStudentIds = $class->students()->pluck('students.id');
 
             foreach ($componentsByTopic as $topicId => $comps) {
                 $topic = MaterialTopic::find($topicId);
@@ -67,80 +72,50 @@ class PublicGradeController extends Controller
                 $hasAnyScore = StudentScore::whereIn('assessment_component_id', $comps->pluck('id'))
                     ->where('student_id', $student->id)
                     ->exists();
-                $hasAttendanceComponent = $comps->contains('is_attendance', true);
 
-                if (!$hasAnyScore && !$hasAttendanceComponent) {
+                if (!$hasAnyScore && !$comps->contains('is_attendance', true)) {
                     continue;
                 }
 
-                $journalIds = TeachingJournal::where('class_id', $class->id)->pluck('id');
+                // Kehadiran dihitung HANYA dari jurnal materi ini
+                $topicJournalIds = TopicJournals::ids($class->id, $topic);
+
+                $adjMap = \App\Models\ScoreAdjustment::where('class_id', $class->id)
+                    ->where('material_topic_id', $topicId)
+                    ->get()->keyBy('student_id');
+
+                $totalWeight = $comps->sum('weight');
+
                 $rows = [];
                 $weightedSum = 0;
-                $totalWeight = $comps->sum('weight');
 
                 foreach ($comps as $c) {
                     if ($c->is_attendance) {
-                        $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
-                            ->where('student_id', $student->id)
-                            ->selectRaw('status, count(*) as total')
-                            ->groupBy('status')
-                            ->pluck('total', 'status');
-                        $hadir = (int) ($counts['Hadir'] ?? 0);
-                        $total = array_sum($counts->toArray());
-                        $score = $total > 0 ? round(($hadir / $total) * 100, 0) : null;
+                        $score = GradeCalculator::attendanceScore($student->id, $topicJournalIds);
                     } else {
-                        $score = StudentScore::where('assessment_component_id', $c->id)
-                            ->where('student_id', $student->id)
-                            ->value('score');
+                        $raw = StudentScore::where('assessment_component_id', $c->id)
+                            ->where('student_id', $student->id)->value('score');
+                        $score = $raw !== null ? (int) round($raw) : null;
                     }
 
                     $rows[] = ['name' => $c->name, 'weight' => $c->weight, 'score' => $score];
-
                     $weightedSum += ($score ?? 0) * $c->weight;
                 }
 
-                $adjustment = \App\Models\ScoreAdjustment::where('class_id', $class->id)
-                    ->where('material_topic_id', $topicId)
-                    ->where('student_id', $student->id)->first();
-                $bonus = $adjustment->bonus ?? 0;
-                $deduction = $adjustment->deduction ?? 0;
+                $bonus = (int) ($adjMap[$student->id]->bonus ?? 0);
+                $deduction = (int) ($adjMap[$student->id]->deduction ?? 0);
 
-                $baseScore = $totalWeight > 0 ? round($weightedSum / $totalWeight, 0) : null;
-                $finalScore = $baseScore !== null ? round($baseScore + $bonus - $deduction, 0) : null;
+                $baseScore = $totalWeight > 0 ? (int) round($weightedSum / $totalWeight) : null;
+                $finalScore = $baseScore !== null ? $baseScore + $bonus - $deduction : null;
 
-                // ===== STATISTIK KELAS untuk kombinasi kelas + materi ini =====
-                $classStudentIds = $class->students()->pluck('students.id');
+                // Statistik kelas untuk kombinasi kelas + materi ini
                 $allFinalScores = [];
-
-                $fixedTotalWeight = $comps->sum('weight');
-
-                    foreach ($classStudentIds as $sid) {
-                        $wSum = 0;
-                        foreach ($comps as $c) {
-                        if ($c->is_attendance) {
-                            $counts2 = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
-                                ->where('student_id', $sid)
-                                ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
-                            $hadir2 = (int) ($counts2['Hadir'] ?? 0);
-                            $total2 = array_sum($counts2->toArray());
-                            $s = $total2 > 0 ? ($hadir2 / $total2) * 100 : null;
-                        } else {
-                            $s = StudentScore::where('assessment_component_id', $c->id)
-                                ->where('student_id', $sid)->value('score');
-                        }
-                        $wSum += ($s ?? 0) * $c->weight;
-                        }
-                        if ($fixedTotalWeight > 0) {
-                            $allFinalScores[] = round($wSum / $fixedTotalWeight, 0);
-                        }
-}
-
-                $statistics = [
-                    'count' => count($allFinalScores),
-                    'average' => count($allFinalScores) > 0 ? round(array_sum($allFinalScores) / count($allFinalScores), 0) : null,
-                    'highest' => count($allFinalScores) > 0 ? max($allFinalScores) : null,
-                    'lowest' => count($allFinalScores) > 0 ? min($allFinalScores) : null,
-                ];
+                foreach ($classStudentIds as $sid) {
+                    $f = GradeCalculator::topicFinal($comps, $sid, $topicJournalIds, $adjMap[$sid] ?? null);
+                    if ($f !== null) {
+                        $allFinalScores[] = $f;
+                    }
+                }
 
                 $results[] = [
                     'class' => $class->name,
@@ -152,15 +127,20 @@ class PublicGradeController extends Controller
                     'final' => $finalScore,
                     'bonus' => $bonus,
                     'deduction' => $deduction,
-                    'statistics' => $statistics,
+                    'statistics' => [
+                        'count' => count($allFinalScores),
+                        'average' => count($allFinalScores) ? (int) round(array_sum($allFinalScores) / count($allFinalScores)) : null,
+                        'highest' => count($allFinalScores) ? max($allFinalScores) : null,
+                        'lowest' => count($allFinalScores) ? min($allFinalScores) : null,
+                    ],
                     'is_class_table_published' => \App\Models\GradePublication::isPublished($class->id, $topicId),
                 ];
             }
         }
 
-        // ===== REKAP KEHADIRAN + DETAIL PER PERTEMUAN =====
+        // ===== REKAP KEHADIRAN + DETAIL PER PERTEMUAN (keseluruhan per kelas) =====
         $attendanceSummary = [];
-        foreach ($student->classes as $class) {
+        foreach ($student->classes->sortBy('name') as $class) {
             $journals = TeachingJournal::where('class_id', $class->id)
                 ->orderBy('journal_date')
                 ->get();
@@ -204,24 +184,40 @@ class PublicGradeController extends Controller
             ];
         }
 
-        $overallByClass = collect($results)
-            ->groupBy('class')
-            ->map(function ($items, $className) {
-                $finals = $items->pluck('final')->filter(fn($v) => $v !== null);
-                return [
-                    'class' => $className,
-                    'average' => $finals->count() > 0 ? (int) round($finals->avg()) : null,
-                    'topic_count' => $items->count(),
-                ];
-            })
-            ->filter(fn($item) => $item['average'] !== null)
-            ->values();
+        // ===== NILAI AKHIR SEMESTER per kelas (materi berbobot + ASAS berbobot) =====
+        $overallByClass = collect();
+        foreach ($student->classes->sortBy('name') as $class) {
+            $recap = GradeCalculator::classRecap($class, $student->id);
+            $row = collect($recap['rows'])->firstWhere('student_id', $student->id);
+
+            if (!$row || $row['final'] === null || $recap['topics']->isEmpty()) {
+                continue;
+            }
+
+            $detailTopics = [];
+foreach ($recap['topics'] as $t) {
+    $detailTopics[] = [
+        'title' => $t->title,
+        'score' => $row['finals'][$t->id] ?? null,
+        'weight' => $recap['topicWeights'][$t->id],
+    ];
+}
+
+            $overallByClass->push([
+                'class' => $class->name,
+                'average' => $row['final'],
+                'topic_count' => $recap['topics']->count(),
+                'asas' => $row['asas'],
+                'asas_weight' => $recap['asasWeight'],
+                'topics' => $detailTopics,
+            ]);
+        }
 
         return view('public.nilai.show', [
             'student' => $student,
             'results' => $results,
             'attendanceSummary' => $attendanceSummary,
-            'overallByClass' => $overallByClass,
+            'overallByClass' => $overallByClass->values(),
         ]);
     }
 
@@ -259,7 +255,7 @@ class PublicGradeController extends Controller
         return redirect()->route('nilai.show')->with('status', 'Password berhasil diperbarui.');
     }
 
-   public function showClassTable($classId, $topicId)
+    public function showClassTable($classId, $topicId)
     {
         if (!\App\Support\ActiveActor::isLoggedIn()) {
             return redirect()->route('login');
@@ -269,20 +265,22 @@ class PublicGradeController extends Controller
         abort_unless($isPublished, 403, 'Tabel nilai kelas ini belum diaktifkan oleh guru.');
 
         $class = \App\Models\SchoolClass::findOrFail($classId);
+        $topic = MaterialTopic::findOrFail($topicId);
 
-        $orderedStudents = \App\Models\Student::whereHas('classes', function ($q) use ($classId) {
+        $students = Student::whereHas('classes', function ($q) use ($classId) {
             $q->where('classes.id', $classId);
         })->orderBy('name')->get();
-
-        $class->setRelation('students', $orderedStudents);
-        $topic = MaterialTopic::findOrFail($topicId);
 
         $components = AssessmentComponent::where('class_id', $classId)
             ->where('material_topic_id', $topicId)
             ->orderBy('order_index')->get();
 
-        $journalIds = TeachingJournal::where('class_id', $classId)->pluck('id');
+        $topicJournalIds = TopicJournals::ids((int) $classId, $topic);
         $totalWeight = $components->sum('weight');
+
+        $adjMap = \App\Models\ScoreAdjustment::where('class_id', $classId)
+            ->where('material_topic_id', $topicId)
+            ->get()->keyBy('student_id');
 
         $actor = \App\Support\ActiveActor::current();
         $myId = $actor['type'] === 'student' ? $actor['id'] : null;
@@ -290,35 +288,28 @@ class PublicGradeController extends Controller
         $rows = [];
         $allFinals = [];
 
-        foreach ($class->students as $student) {
+        foreach ($students as $student) {
             $scores = [];
             $weightedSum = 0;
 
             foreach ($components as $c) {
                 if ($c->is_attendance) {
-                    $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
-                        ->where('student_id', $student->id)
-                        ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
-                    $hadir = (int) ($counts['Hadir'] ?? 0);
-                    $total = array_sum($counts->toArray());
-                    $score = $total > 0 ? round(($hadir / $total) * 100, 0) : null;
+                    $score = GradeCalculator::attendanceScore($student->id, $topicJournalIds);
                 } else {
-                    $score = StudentScore::where('assessment_component_id', $c->id)
+                    $raw = StudentScore::where('assessment_component_id', $c->id)
                         ->where('student_id', $student->id)->value('score');
+                    $score = $raw !== null ? (int) round($raw) : null;
                 }
 
                 $scores[] = $score;
                 $weightedSum += ($score ?? 0) * $c->weight;
             }
 
-            $adjustment = \App\Models\ScoreAdjustment::where('class_id', $classId)
-                ->where('material_topic_id', $topicId)
-                ->where('student_id', $student->id)->first();
-            $bonus = $adjustment->bonus ?? 0;
-            $deduction = $adjustment->deduction ?? 0;
+            $bonus = (int) ($adjMap[$student->id]->bonus ?? 0);
+            $deduction = (int) ($adjMap[$student->id]->deduction ?? 0);
 
-            $base = $totalWeight > 0 ? round($weightedSum / $totalWeight, 0) : null;
-            $final = $base !== null ? round($base + $bonus - $deduction, 0) : null;
+            $base = $totalWeight > 0 ? (int) round($weightedSum / $totalWeight) : null;
+            $final = $base !== null ? $base + $bonus - $deduction : null;
 
             if ($final !== null) {
                 $allFinals[] = $final;
@@ -335,14 +326,12 @@ class PublicGradeController extends Controller
             ];
         }
 
-        $classOverallAverage = count($allFinals) > 0 ? round(array_sum($allFinals) / count($allFinals), 0) : null;
-
         return view('public.nilai.class-table', [
             'class' => $class,
             'topic' => $topic,
             'components' => $components,
             'rows' => $rows,
-            'classOverallAverage' => $classOverallAverage,
+            'classOverallAverage' => count($allFinals) ? (int) round(array_sum($allFinals) / count($allFinals)) : null,
         ]);
     }
 
