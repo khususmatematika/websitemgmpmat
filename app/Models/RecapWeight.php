@@ -5,5 +5,5 @@ use Illuminate\Database\Eloquent\Model;
 
 class RecapWeight extends Model
 {
-    protected $fillable = ['class_id', 'material_topic_id', 'weight'];
+    protected $fillable = ['class_id', 'material_topic_id', 'academic_year_id', 'weight'];
 }

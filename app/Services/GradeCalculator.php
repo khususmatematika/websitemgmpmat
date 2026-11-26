@@ -1,6 +1,7 @@
 <?php
 namespace App\Services;
 
+use App\Models\AcademicYear;
 use App\Models\AsasScore;
 use App\Models\AssessmentComponent;
 use App\Models\JournalAttendance;
@@ -10,7 +11,9 @@ use App\Models\SchoolClass;
 use App\Models\ScoreAdjustment;
 use App\Models\Student;
 use App\Models\StudentScore;
+use App\Models\TeachingJournal;
 use App\Support\TopicJournals;
+use Illuminate\Support\Facades\DB;
 
 class GradeCalculator
 {
@@ -29,6 +32,39 @@ class GradeCalculator
         $total = array_sum($counts->toArray());
 
         return $total > 0 ? (int) round(($hadir / $total) * 100) : null;
+    }
+
+    /**
+     * Siswa yang tercatat pada kelas di suatu periode.
+     * Periode aktif: anggota kelas saat ini. Periode arsip: siswa yang punya nilai/presensi pada periode itu,
+     * supaya data lama tetap utuh meski siswa sudah naik kelas.
+     */
+    public static function studentIds(int $classId, ?int $periodId)
+    {
+        $current = DB::table('class_student')->where('class_id', $classId)->pluck('student_id');
+
+        if (!$periodId || $periodId === AcademicYear::activeId()) {
+            return $current->unique()->values();
+        }
+
+        $scoreTbl = (new StudentScore)->getTable();
+        $compTbl = (new AssessmentComponent)->getTable();
+        $attTbl = (new JournalAttendance)->getTable();
+        $jrnTbl = (new TeachingJournal)->getTable();
+
+        $fromScores = DB::table($scoreTbl)
+            ->join($compTbl, "$compTbl.id", '=', "$scoreTbl.assessment_component_id")
+            ->where("$compTbl.class_id", $classId)
+            ->where("$compTbl.academic_year_id", $periodId)
+            ->pluck("$scoreTbl.student_id");
+
+        $fromAtt = DB::table($attTbl)
+            ->join($jrnTbl, "$jrnTbl.id", '=', "$attTbl.teaching_journal_id")
+            ->where("$jrnTbl.class_id", $classId)
+            ->where("$jrnTbl.academic_year_id", $periodId)
+            ->pluck("$attTbl.student_id");
+
+        return $fromScores->merge($fromAtt)->unique()->values();
     }
 
     /** Nilai akhir satu siswa pada satu materi (sudah termasuk tambahan/pengurangan). */
@@ -56,20 +92,25 @@ class GradeCalculator
         return $base + (int) ($adj->bonus ?? 0) - (int) ($adj->deduction ?? 0);
     }
 
-    /** Rekap satu kelas. $onlyStudentId membatasi hitungan ke satu siswa (dipakai halaman siswa). */
-    public static function classRecap(SchoolClass $class, ?int $onlyStudentId = null): array
+    /** Rekap satu kelas pada satu periode. $onlyStudentId membatasi ke satu siswa. */
+    public static function classRecap(SchoolClass $class, ?int $onlyStudentId = null, ?int $periodId = null): array
     {
-        $students = Student::whereHas('classes', fn($q) => $q->where('classes.id', $class->id))
-            ->when($onlyStudentId, fn($q) => $q->where('students.id', $onlyStudentId))
+        $periodId = $periodId ?? AcademicYear::activeId();
+
+        $students = Student::whereIn('id', self::studentIds($class->id, $periodId))
+            ->when($onlyStudentId, fn($q) => $q->where('id', $onlyStudentId))
             ->orderBy('name')->get();
 
         $componentsByTopic = AssessmentComponent::where('class_id', $class->id)
+            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
             ->orderBy('order_index')->get()->groupBy('material_topic_id');
 
         $topics = MaterialTopic::whereIn('id', $componentsByTopic->keys())
             ->orderBy('semester')->orderBy('order_index')->get();
 
-        $weights = RecapWeight::where('class_id', $class->id)->get();
+        $weights = RecapWeight::where('class_id', $class->id)
+            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
+            ->get();
         $storedTopicWeights = $weights->whereNotNull('material_topic_id')->pluck('weight', 'material_topic_id');
         $asasWeight = (float) ($weights->whereNull('material_topic_id')->first()->weight ?? 0);
 
@@ -78,14 +119,17 @@ class GradeCalculator
             $topicWeights[$t->id] = (float) ($storedTopicWeights[$t->id] ?? 1);
         }
 
-        $asas = AsasScore::where('class_id', $class->id)->pluck('score', 'student_id');
+        $asas = AsasScore::where('class_id', $class->id)
+            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
+            ->pluck('score', 'student_id');
 
-        $adjByTopic = ScoreAdjustment::where('class_id', $class->id)->get()
-            ->groupBy('material_topic_id')->map(fn($g) => $g->keyBy('student_id'));
+        $adjByTopic = ScoreAdjustment::where('class_id', $class->id)
+            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
+            ->get()->groupBy('material_topic_id')->map(fn($g) => $g->keyBy('student_id'));
 
         $journalsByTopic = [];
         foreach ($topics as $t) {
-            $journalsByTopic[$t->id] = TopicJournals::ids($class->id, $t);
+            $journalsByTopic[$t->id] = TopicJournals::ids($class->id, $t, $periodId);
         }
 
         $rows = [];

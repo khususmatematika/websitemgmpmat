@@ -103,6 +103,46 @@
                     <p class="text-[11px] text-on-surface-variant">
                         Nilai akhir = (jumlah nilai x bobot) / total bobot. Komponen yang belum ada nilainya dihitung 0.
                     </p>
+
+                    @if (!empty($item['targets']))
+                    <div class="border-t border-outline-variant pt-3">
+                        <p class="text-xs font-bold text-navy-deep uppercase tracking-wide flex items-center gap-1 mb-2">
+                            <span class="material-symbols-outlined text-[16px] text-math-teal">flag</span>
+                            ASAS minimal untuk menyamai semester lalu
+                        </p>
+                        <table class="w-full text-sm">
+                            <thead class="text-on-surface-variant text-xs">
+                                <tr>
+                                    <th class="py-1 text-left font-medium">Semester</th>
+                                    <th class="py-1 text-center font-medium">Nilai</th>
+                                    <th class="py-1 text-right font-medium">ASAS minimal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($item['targets'] as $tg)
+                                <tr class="border-t border-outline-variant/50">
+                                    <td class="py-2 text-navy-deep text-xs">{{ $tg['label'] }}</td>
+                                    <td class="py-2 text-center font-bold">{{ $tg['score'] }}</td>
+                                    <td class="py-2 text-right font-bold">
+                                        @if ($tg['status'] === 'ok')
+                                            <span class="text-math-teal">{{ $tg['min_asas'] }}</span>
+                                        @elseif ($tg['status'] === 'safe')
+                                            <span class="text-status-success text-xs">Sudah tercapai (ASAS 0 pun cukup)</span>
+                                        @elseif ($tg['status'] === 'impossible')
+                                            <span class="text-status-error text-xs">Tidak tercapai (butuh di atas 100)</span>
+                                        @elseif ($tg['status'] === 'no_weight')
+                                            <span class="text-on-surface-variant text-xs">Bobot ASAS belum diatur guru</span>
+                                        @else
+                                            <span class="text-on-surface-variant text-xs">Belum ada data</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                        <p class="text-[11px] text-on-surface-variant mt-2">Perkiraan dari nilai materi saat ini, bisa berubah bila nilai materi bertambah.</p>
+                    </div>
+                    @endif
                 </div>
             </div>
             @endforeach
@@ -192,6 +232,19 @@
         </div>
     @endif
 
+    @if ($periods->count() > 1)
+    <form method="GET" class="mb-6 flex items-center gap-2">
+        <span class="material-symbols-outlined text-math-teal">event_repeat</span>
+        <select name="periode" onchange="this.form.submit()" class="rounded-md border-outline-variant text-sm">
+            @foreach ($periods as $p)
+                <option value="{{ $p->id }}" {{ $currentPeriod && $currentPeriod->id === $p->id ? 'selected' : '' }}>
+                    {{ $p->label }}{{ $p->is_active ? ' (Aktif)' : ' - Arsip' }}
+                </option>
+            @endforeach
+        </select>
+    </form>
+    @endif
+
     @if (session('status'))
     <div class="mb-6 p-3 bg-status-success/10 text-status-success rounded-md text-sm">{{ session('status') }}</div>
     @endif
@@ -260,7 +313,7 @@
                     @endif
 
                     @if ($r['is_class_table_published'])
-                    <a href="{{ route('nilai.class-table', [$r['class_id'], $r['topic_id']]) }}"
+                    <a href="{{ route('nilai.class-table', ['classId' => $r['class_id'], 'topicId' => $r['topic_id'], 'periode' => $currentPeriod?->id]) }}"
                     class="mt-3 flex items-center justify-center gap-2 bg-math-teal/10 text-math-teal py-2 rounded-md text-sm font-bold hover:bg-math-teal/20 transition-colors">
                         <span class="material-symbols-outlined text-[18px]">groups</span>
                         Lihat Nilai Seluruh Kelas

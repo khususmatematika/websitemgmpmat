@@ -2,13 +2,16 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
 use App\Models\AssessmentComponent;
-use App\Models\JournalAttendance;
+use App\Models\GradePublication;
 use App\Models\MaterialTopic;
 use App\Models\SchoolClass;
 use App\Models\ScoreAdjustment;
+use App\Models\Student;
 use App\Models\StudentScore;
-use App\Models\TeachingJournal;
+use App\Services\GradeCalculator;
+use App\Support\TopicJournals;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -25,69 +28,91 @@ class GuruGradeController extends Controller
         ];
     }
 
-    protected function topicsForClass(SchoolClass $schoolClass)
+    /** Periode yang sedang dilihat: ?periode=ID, atau periode aktif. */
+    protected function period(Request $request): ?AcademicYear
+    {
+        if ($request->filled('periode')) {
+            $p = AcademicYear::find($request->periode);
+            if ($p) return $p;
+        }
+        return AcademicYear::active();
+    }
+
+    protected function requireActivePeriod(): AcademicYear
+    {
+        $active = AcademicYear::active();
+        abort_unless($active, 422, 'Belum ada tahun ajaran aktif. Hubungi Admin.');
+        return $active;
+    }
+
+    protected function topicsForClass(SchoolClass $schoolClass, ?string $semester = null)
     {
         $fase = $schoolClass->fase ?: ($schoolClass->jenjang === 'X' ? 'E' : 'F');
-        $jenjangCode = "{$schoolClass->jenjang}-{$fase}";
+        $base = MaterialTopic::where('jenjang', "{$schoolClass->jenjang}-{$fase}");
 
-        return MaterialTopic::where('jenjang', $jenjangCode)
+        $filtered = (clone $base)
+            ->when($semester, fn($q) => $q->where('semester', $semester))
             ->orderBy('semester')->orderBy('order_index')->get();
+
+        return $filtered->isNotEmpty() ? $filtered : $base->orderBy('semester')->orderBy('order_index')->get();
     }
 
     public function index(Request $request)
     {
         $teacherId = Auth::guard('guru')->id();
-        $myClasses = SchoolClass::whereHas('teachers', fn($q) => $q->where('teacher_id', $teacherId))
-            ->orderBy('name')->get();
+        $myClasses = SchoolClass::taughtBy($teacherId, true)->orderBy('name')->get();
+
+        $periods = AcademicYear::orderByDesc('start_date')->orderByDesc('id')->get();
+        $period = $this->period($request);
 
         $selectedClassId = $request->get('class_id');
         $topics = collect();
 
         if ($selectedClassId) {
             $class = SchoolClass::find($selectedClassId);
-            if ($class) $topics = $this->topicsForClass($class);
+            if ($class) $topics = $this->topicsForClass($class, $period?->semester);
         }
 
         return view('guru.nilai.index', [
             'myClasses' => $myClasses,
             'selectedClassId' => $selectedClassId,
             'topics' => $topics,
+            'periods' => $periods,
+            'period' => $period,
         ] + $this->nav());
     }
 
     public function manage(Request $request)
     {
         $teacherId = Auth::guard('guru')->id();
-        $classId = $request->get('class_id');
-        $materialTopicId = $request->get('material_topic_id');
+        $classId = (int) $request->get('class_id');
+        $materialTopicId = (int) $request->get('material_topic_id');
 
         abort_unless($classId && $materialTopicId, 400, 'Kelas dan materi wajib dipilih.');
+
+        $period = $this->period($request);
+        abort_unless($period, 422, 'Belum ada tahun ajaran aktif. Hubungi Admin.');
+        $isReadOnly = $period->id !== AcademicYear::activeId();
 
         $class = SchoolClass::findOrFail($classId);
         $topic = MaterialTopic::findOrFail($materialTopicId);
 
-        $students = \App\Models\Student::whereHas('classes', function ($q) use ($classId) {
-            $q->where('classes.id', $classId);
-        })->orderBy('name')->get();
+        $students = Student::whereIn('id', GradeCalculator::studentIds($classId, $period->id))
+            ->orderBy('name')->get();
 
         $components = AssessmentComponent::where('teacher_id', $teacherId)
             ->where('class_id', $classId)
             ->where('material_topic_id', $materialTopicId)
+            ->where('academic_year_id', $period->id)
             ->orderBy('order_index')
             ->get();
 
-        $journalIds = \App\Support\TopicJournals::ids((int) $classId, $topic, null, $teacherId);
+        // Kehadiran HANYA dari jurnal materi ini pada periode ini
+        $journalIds = TopicJournals::ids($classId, $topic, $period->id, $teacherId);
 
         $attendancePercent = [];
         foreach ($students as $student) {
-            $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
-                ->where('student_id', $student->id)
-                ->selectRaw('status, count(*) as total')
-                ->groupBy('status')->pluck('total', 'status');
-
-            $hadir = (int) ($counts['Hadir'] ?? 0);
-            $total = array_sum($counts->toArray());
-            $attendancePercent[$student->id] = $total > 0 ? (int) round(($hadir / $total) * 100) : 0;
+            $attendancePercent[$student->id] = GradeCalculator::attendanceScore($student->id, $journalIds) ?? 0;
         }
 
         $existingScores = StudentScore::whereIn('assessment_component_id', $components->pluck('id'))
@@ -97,14 +122,17 @@ class GuruGradeController extends Controller
 
         $adjustments = ScoreAdjustment::where('class_id', $classId)
             ->where('material_topic_id', $materialTopicId)
+            ->where('academic_year_id', $period->id)
             ->get()
             ->keyBy('student_id');
 
-        $isPublished = \App\Models\GradePublication::isPublished($classId, $materialTopicId);
+        $isPublished = GradePublication::isPublished($classId, $materialTopicId, $period->id);
 
         return view('guru.nilai.manage', [
             'class' => $class,
             'topic' => $topic,
+            'period' => $period,
+            'isReadOnly' => $isReadOnly,
             'components' => $components,
             'students' => $students,
             'attendancePercent' => $attendancePercent,
@@ -116,6 +144,8 @@ class GuruGradeController extends Controller
 
     public function storeComponent(Request $request)
     {
+        $active = $this->requireActivePeriod();
+
         $data = $request->validate([
             'class_id' => 'required|exists:classes,id',
             'material_topic_id' => 'required|exists:material_topics,id',
@@ -126,12 +156,14 @@ class GuruGradeController extends Controller
 
         $maxOrder = AssessmentComponent::where('class_id', $data['class_id'])
             ->where('material_topic_id', $data['material_topic_id'])
+            ->where('academic_year_id', $active->id)
             ->max('order_index');
 
         AssessmentComponent::create([
             'teacher_id' => Auth::guard('guru')->id(),
             'class_id' => $data['class_id'],
             'material_topic_id' => $data['material_topic_id'],
+            'academic_year_id' => $active->id,
             'name' => $data['name'],
             'weight' => $data['weight'],
             'is_attendance' => $request->boolean('is_attendance'),
@@ -147,6 +179,7 @@ class GuruGradeController extends Controller
     public function updateComponent(Request $request, AssessmentComponent $assessmentComponent)
     {
         abort_if($assessmentComponent->teacher_id !== Auth::guard('guru')->id(), 403);
+        abort_if((int) $assessmentComponent->academic_year_id !== (int) AcademicYear::activeId(), 403, 'Data arsip tidak dapat diubah.');
 
         $data = $request->validate([
             'name' => 'required|string|max:100',
@@ -164,6 +197,7 @@ class GuruGradeController extends Controller
     public function destroyComponent(AssessmentComponent $assessmentComponent)
     {
         abort_if($assessmentComponent->teacher_id !== Auth::guard('guru')->id(), 403);
+        abort_if((int) $assessmentComponent->academic_year_id !== (int) AcademicYear::activeId(), 403, 'Data arsip tidak dapat dihapus.');
 
         $classId = $assessmentComponent->class_id;
         $topicId = $assessmentComponent->material_topic_id;
@@ -175,6 +209,8 @@ class GuruGradeController extends Controller
 
     public function saveScores(Request $request)
     {
+        $active = $this->requireActivePeriod();
+
         $data = $request->validate([
             'class_id' => 'required|exists:classes,id',
             'material_topic_id' => 'required|exists:material_topics,id',
@@ -185,6 +221,7 @@ class GuruGradeController extends Controller
         foreach ($request->input('scores', []) as $componentId => $studentScores) {
             $component = AssessmentComponent::find($componentId);
             if (!$component || $component->is_attendance) continue;
+            if ((int) $component->academic_year_id !== (int) $active->id) continue;
 
             foreach ($studentScores as $studentId => $value) {
                 if ($value === '' || $value === null) continue;
@@ -199,6 +236,7 @@ class GuruGradeController extends Controller
         foreach ($request->input('adjustments', []) as $studentId => $val) {
             ScoreAdjustment::updateOrCreate(
                 [
+                    'academic_year_id' => $active->id,
                     'class_id' => $data['class_id'],
                     'material_topic_id' => $data['material_topic_id'],
                     'student_id' => $studentId,
@@ -218,13 +256,19 @@ class GuruGradeController extends Controller
 
     public function togglePublish(Request $request)
     {
+        $active = $this->requireActivePeriod();
+
         $data = $request->validate([
             'class_id' => 'required|exists:classes,id',
             'material_topic_id' => 'required|exists:material_topics,id',
         ]);
 
-        $pub = \App\Models\GradePublication::firstOrCreate(
-            ['class_id' => $data['class_id'], 'material_topic_id' => $data['material_topic_id']],
+        $pub = GradePublication::firstOrCreate(
+            [
+                'academic_year_id' => $active->id,
+                'class_id' => $data['class_id'],
+                'material_topic_id' => $data['material_topic_id'],
+            ],
             ['teacher_id' => Auth::guard('guru')->id(), 'is_published' => false]
         );
 
@@ -237,18 +281,24 @@ class GuruGradeController extends Controller
     public function export(Request $request)
     {
         $teacherId = Auth::guard('guru')->id();
-        $classId = $request->get('class_id');
-        $materialTopicId = $request->get('material_topic_id');
+        $classId = (int) $request->get('class_id');
+        $materialTopicId = (int) $request->get('material_topic_id');
+        $period = $this->period($request);
+        abort_unless($period, 422, 'Belum ada tahun ajaran aktif.');
 
-        $class = SchoolClass::with('students')->findOrFail($classId);
+        $class = SchoolClass::findOrFail($classId);
         $topic = MaterialTopic::findOrFail($materialTopicId);
+
+        $students = Student::whereIn('id', GradeCalculator::studentIds($classId, $period->id))
+            ->orderBy('name')->get();
 
         $components = AssessmentComponent::where('teacher_id', $teacherId)
             ->where('class_id', $classId)
             ->where('material_topic_id', $materialTopicId)
+            ->where('academic_year_id', $period->id)
             ->orderBy('order_index')->get();
 
-        $journalIds = \App\Support\TopicJournals::ids((int) $classId, $topic, null, $teacherId);
+        $journalIds = TopicJournals::ids($classId, $topic, $period->id, $teacherId);
         $totalWeight = $components->sum('weight');
 
         $spreadsheet = new Spreadsheet();
@@ -265,23 +315,18 @@ class GuruGradeController extends Controller
         $sheet->setCellValue([$col, 1], 'Nilai Akhir');
 
         $row = 2;
-        foreach ($class->students as $student) {
+        foreach ($students as $student) {
             $col = 1;
             $sheet->setCellValue([$col++, $row], $student->name);
-
             $weightedSum = 0;
 
             foreach ($components as $c) {
                 if ($c->is_attendance) {
-                    $counts = JournalAttendance::whereIn('teaching_journal_id', $journalIds)
-                        ->where('student_id', $student->id)
-                        ->selectRaw('status, count(*) as total')->groupBy('status')->pluck('total', 'status');
-                    $hadir = (int) ($counts['Hadir'] ?? 0);
-                    $total = array_sum($counts->toArray());
-                    $score = $total > 0 ? (int) round(($hadir / $total) * 100) : 0;
+                    $score = GradeCalculator::attendanceScore($student->id, $journalIds);
                 } else {
-                    $score = StudentScore::where('assessment_component_id', $c->id)
+                    $raw = StudentScore::where('assessment_component_id', $c->id)
                         ->where('student_id', $student->id)->value('score');
+                    $score = $raw !== null ? (int) round($raw) : null;
                 }
 
                 $sheet->setCellValue([$col++, $row], $score ?? '-');
@@ -290,10 +335,11 @@ class GuruGradeController extends Controller
 
             $adjustment = ScoreAdjustment::where('class_id', $classId)
                 ->where('material_topic_id', $materialTopicId)
+                ->where('academic_year_id', $period->id)
                 ->where('student_id', $student->id)->first();
 
-            $bonus = $adjustment->bonus ?? 0;
-            $deduction = $adjustment->deduction ?? 0;
+            $bonus = (int) ($adjustment->bonus ?? 0);
+            $deduction = (int) ($adjustment->deduction ?? 0);
 
             $sheet->setCellValue([$col++, $row], $bonus);
             $sheet->setCellValue([$col++, $row], $deduction);
@@ -303,7 +349,7 @@ class GuruGradeController extends Controller
             $row++;
         }
 
-        $filename = 'Nilai-' . str_replace(' ', '-', $class->name) . '-' . str_replace(' ', '-', $topic->title) . '.xlsx';
+        $filename = 'Nilai-' . str_replace([' ', '/'], '-', $class->name . '-' . $topic->title . '-' . $period->name . '-' . $period->semester) . '.xlsx';
         $tempPath = storage_path('app/temp-' . $filename);
         (new Xlsx($spreadsheet))->save($tempPath);
 

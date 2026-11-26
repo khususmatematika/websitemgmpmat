@@ -2,6 +2,7 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
 use App\Models\JournalAttendance;
 use App\Models\Letterhead;
 use App\Models\MaterialTopic;
@@ -15,13 +16,13 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class GuruJournalController extends Controller
 {
     protected function nav(): array
-{
-    return [
-        'navItems' => \App\Support\GuruNav::items(),
-        'guard' => 'guru',
-        'panelTitle' => 'Panel Guru',
-    ];
-}
+    {
+        return [
+            'navItems' => \App\Support\GuruNav::items(),
+            'guard' => 'guru',
+            'panelTitle' => 'Panel Guru',
+        ];
+    }
 
     protected function todayDayName(): string
     {
@@ -29,102 +30,136 @@ class GuruJournalController extends Controller
         return $map[now()->timezone('Asia/Jakarta')->format('l')];
     }
 
-    protected function topicsForClass(SchoolClass $schoolClass)
-{
-    $jenjangCode = $this->resolveJenjangCode($schoolClass);
+    /**
+     * Materi hanya yang sesuai semester pada tanggal jurnal (tidak ada cadangan "tampil semua").
+     */
+    protected function topicsForClass(SchoolClass $schoolClass, $date = null)
+    {
+        $date = $date ?: now()->timezone('Asia/Jakarta')->toDateString();
+        $semester = AcademicYear::forDate($date)?->semester;
 
-    return MaterialTopic::where('jenjang', $jenjangCode)
-        ->orderBy('semester')
-        ->orderBy('order_index')
-        ->get();
-}
+        if (!$semester) {
+            return collect();
+        }
 
-/**
- * Kode jenjang untuk MaterialTopic dibentuk dari jenjang + fase kelas,
- * sesuai konfigurasi yang diatur Admin di Data Kelas (mis. "XI" + "F+" = "XI-F+").
- */
-protected function resolveJenjangCode(SchoolClass $schoolClass): string
-{
-    $fase = $schoolClass->fase ?: ($schoolClass->jenjang === 'X' ? 'E' : 'F');
+        return MaterialTopic::where('jenjang', $this->resolveJenjangCode($schoolClass))
+            ->where('semester', $semester)
+            ->orderBy('order_index')
+            ->get();
+    }
 
-    return "{$schoolClass->jenjang}-{$fase}";
-}
+    /**
+     * Kode jenjang untuk MaterialTopic dibentuk dari jenjang + fase kelas,
+     * sesuai konfigurasi yang diatur Admin di Data Kelas (mis. "XI" + "F+" = "XI-F+").
+     */
+    protected function resolveJenjangCode(SchoolClass $schoolClass): string
+    {
+        $fase = $schoolClass->fase ?: ($schoolClass->jenjang === 'X' ? 'E' : 'F');
+
+        return "{$schoolClass->jenjang}-{$fase}";
+    }
+
+    /** Kelas yang diajar guru pada periode tertentu (dari jadwal). */
+    protected function myClasses(int $teacherId, ?int $periodId)
+    {
+        $ids = TeacherClass::where('teacher_id', $teacherId)
+            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
+            ->pluck('class_id')
+            ->unique();
+
+        return SchoolClass::whereIn('id', $ids)->orderBy('name')->get();
+    }
 
     public function index(Request $request)
-{
-    $teacherId = Auth::guard('guru')->id();
-    $selectedDate = $request->get('date', now()->timezone('Asia/Jakarta')->toDateString());
-    $selectedDayName = $this->dayNameFromDate($selectedDate);
+    {
+        $teacherId = Auth::guard('guru')->id();
+        $selectedDate = $request->get('date', now()->timezone('Asia/Jakarta')->toDateString());
+        $selectedDayName = $this->dayNameFromDate($selectedDate);
 
-    $schedulesForDate = TeacherClass::with('schoolClass')
-        ->where('teacher_id', $teacherId)
-        ->where('day', $selectedDayName)
-        ->orderBy('start_time')
-        ->get();
+        // Jadwal mengikuti periode dari tanggal yang dipilih
+        $period = AcademicYear::forDate($selectedDate);
+        $periodId = $period?->id;
 
-    $filledClassIds = TeachingJournal::where('teacher_id', $teacherId)
-        ->where('journal_date', $selectedDate)
-        ->pluck('class_id')
-        ->toArray();
+        $schedulesForDate = TeacherClass::with('schoolClass')
+            ->where('teacher_id', $teacherId)
+            ->where('day', $selectedDayName)
+            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
+            ->orderBy('start_time')
+            ->get();
 
-    $filterClass = $request->get('class_id');
-    $filterMonth = $request->get('month', now()->format('Y-m'));
+        $hasAnySchedule = TeacherClass::where('teacher_id', $teacherId)
+            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
+            ->exists();
 
-    $journals = TeachingJournal::with('schoolClass')
-        ->where('teacher_id', $teacherId)
-        ->when($filterClass, fn($q) => $q->where('class_id', $filterClass))
-        ->whereRaw("DATE_FORMAT(journal_date, '%Y-%m') = ?", [$filterMonth])
-        ->orderByDesc('journal_date')
-        ->get();
+        $filledClassIds = TeachingJournal::where('teacher_id', $teacherId)
+            ->where('journal_date', $selectedDate)
+            ->pluck('class_id')
+            ->toArray();
 
-    $myClasses = SchoolClass::whereHas('teachers', fn($q) => $q->where('teacher_id', $teacherId))
-        ->orderBy('name')->get();
+        $filterClass = $request->get('class_id');
+        $filterMonth = $request->get('month', now()->format('Y-m'));
 
-    return view('guru.jurnal.index', [
-        'schedulesForDate' => $schedulesForDate,
-        'selectedDate' => $selectedDate,
-        'selectedDayName' => $selectedDayName,
-        'filledClassIds' => $filledClassIds,
-        'journals' => $journals,
-        'myClasses' => $myClasses,
-        'filterClass' => $filterClass,
-        'filterMonth' => $filterMonth,
-    ] + $this->nav());
-}
+        $journals = TeachingJournal::with('schoolClass')
+            ->where('teacher_id', $teacherId)
+            ->when($filterClass, fn($q) => $q->where('class_id', $filterClass))
+            ->whereRaw("DATE_FORMAT(journal_date, '%Y-%m') = ?", [$filterMonth])
+            ->orderByDesc('journal_date')
+            ->get();
 
-protected function dayNameFromDate(string $date): string
-{
-    $map = ['Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'];
-    $englishDay = \Carbon\Carbon::parse($date)->format('l');
-    return $map[$englishDay];
-}
+        // Filter kelas pada daftar jurnal: kelas yang pernah ada jurnalnya + jadwal periode aktif
+        $journalClassIds = TeachingJournal::where('teacher_id', $teacherId)->distinct()->pluck('class_id');
+        $activeClassIds = TeacherClass::where('teacher_id', $teacherId)
+            ->where('academic_year_id', AcademicYear::activeId())->pluck('class_id');
+        $myClasses = SchoolClass::whereIn('id', $journalClassIds->merge($activeClassIds)->unique())
+            ->orderBy('name')->get();
+
+        return view('guru.jurnal.index', [
+            'schedulesForDate' => $schedulesForDate,
+            'selectedDate' => $selectedDate,
+            'selectedDayName' => $selectedDayName,
+            'filledClassIds' => $filledClassIds,
+            'journals' => $journals,
+            'myClasses' => $myClasses,
+            'filterClass' => $filterClass,
+            'filterMonth' => $filterMonth,
+            'period' => $period,
+            'hasAnySchedule' => $hasAnySchedule,
+        ] + $this->nav());
+    }
+
+    protected function dayNameFromDate(string $date): string
+    {
+        $map = ['Sunday' => 'Minggu', 'Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu'];
+        $englishDay = \Carbon\Carbon::parse($date)->format('l');
+        return $map[$englishDay];
+    }
 
     public function create(Request $request, TeacherClass $teacherClass)
     {
-    abort_if($teacherClass->teacher_id !== Auth::guard('guru')->id(), 403);
+        abort_if($teacherClass->teacher_id !== Auth::guard('guru')->id(), 403);
 
-    $date = $request->query('date');
-    if (!$date) {
-        $date = now()->timezone('Asia/Jakarta')->toDateString();
-    }
+        $date = $request->query('date');
+        if (!$date) {
+            $date = now()->timezone('Asia/Jakarta')->toDateString();
+        }
 
-    $existing = TeachingJournal::where('class_id', $teacherClass->class_id)
-        ->where('journal_date', $date)
-        ->first();
+        $existing = TeachingJournal::where('class_id', $teacherClass->class_id)
+            ->where('journal_date', $date)
+            ->first();
 
-    if ($existing) {
-        return redirect()->route('guru.jurnal.edit', $existing);
-    }
+        if ($existing) {
+            return redirect()->route('guru.jurnal.edit', $existing);
+        }
 
-    $students = $teacherClass->schoolClass->students()->orderBy('name')->get();
-    $topics = $this->topicsForClass($teacherClass->schoolClass);
+        $students = $teacherClass->schoolClass->students()->orderBy('name')->get();
+        $topics = $this->topicsForClass($teacherClass->schoolClass, $date);
 
-    return view('guru.jurnal.create', [
-        'teacherClass' => $teacherClass,
-        'date' => $date,
-        'students' => $students,
-        'topics' => $topics,
-    ] + $this->nav());
+        return view('guru.jurnal.create', [
+            'teacherClass' => $teacherClass,
+            'date' => $date,
+            'students' => $students,
+            'topics' => $topics,
+        ] + $this->nav());
     }
 
     public function store(Request $request, TeacherClass $teacherClass)
@@ -139,13 +174,16 @@ protected function dayNameFromDate(string $date): string
             'attendance.*' => 'in:Hadir,Sakit,Izin,Alpa',
         ]);
 
-        $journal = TeachingJournal::create([
+        $journal = new TeachingJournal([
             'teacher_id' => $teacherClass->teacher_id,
             'class_id' => $teacherClass->class_id,
             'journal_date' => $data['journal_date'],
             'materi' => $data['materi'] ?? null,
             'kegiatan' => $data['kegiatan'] ?? null,
         ]);
+        // Periode ditentukan dari tanggal jurnal
+        $journal->academic_year_id = AcademicYear::forDate($data['journal_date'])?->id;
+        $journal->save();
 
         $students = $teacherClass->schoolClass->students;
         foreach ($students as $student) {
@@ -164,7 +202,7 @@ protected function dayNameFromDate(string $date): string
         abort_if($teachingJournal->teacher_id !== Auth::guard('guru')->id(), 403);
 
         $teachingJournal->load('schoolClass', 'attendances.student');
-        $topics = $this->topicsForClass($teachingJournal->schoolClass);
+        $topics = $this->topicsForClass($teachingJournal->schoolClass, $teachingJournal->journal_date);
 
         return view('guru.jurnal.edit', [
             'journal' => $teachingJournal,
@@ -202,8 +240,7 @@ protected function dayNameFromDate(string $date): string
     {
         $teacherId = Auth::guard('guru')->id();
 
-        $myClasses = SchoolClass::whereHas('teachers', fn($q) => $q->where('teacher_id', $teacherId))
-            ->orderBy('name')->get();
+        $myClasses = $this->myClasses($teacherId, AcademicYear::activeId());
 
         $filterClass = $request->get('class_id') ?: ($myClasses->first()->id ?? null);
         $filterMonth = $request->get('month', now()->format('Y-m'));
@@ -258,60 +295,64 @@ protected function dayNameFromDate(string $date): string
         ] + $this->nav());
     }
 
-   public function printPdf(Request $request)
-{
-    $teacherId = Auth::guard('guru')->id();
-    $teacher = Auth::guard('guru')->user();
+    public function printPdf(Request $request)
+    {
+        $teacherId = Auth::guard('guru')->id();
+        $teacher = Auth::guard('guru')->user();
 
-    $classId = $request->get('class_id'); // null/kosong berarti "semua kelas"
-    $month = $request->get('month', now()->format('Y-m'));
+        $classId = $request->get('class_id'); // null/kosong berarti "semua kelas"
+        $month = $request->get('month', now()->format('Y-m'));
 
-    $letterhead = Letterhead::current();
-    $monthLabel = \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y');
+        $letterhead = Letterhead::current();
+        $monthLabel = \Carbon\Carbon::createFromFormat('Y-m', $month)->translatedFormat('F Y');
 
-    if ($classId) {
-        // Cetak 1 kelas saja (perilaku lama)
-        $class = SchoolClass::findOrFail($classId);
+        if ($classId) {
+            // Cetak 1 kelas saja
+            $class = SchoolClass::findOrFail($classId);
 
-        $journals = TeachingJournal::with('attendances.student')
-            ->where('teacher_id', $teacherId)
-            ->where('class_id', $classId)
-            ->whereRaw("DATE_FORMAT(journal_date, '%Y-%m') = ?", [$month])
-            ->orderBy('journal_date')
-            ->get();
-
-        $groupedByClass = collect([
-            ['class' => $class, 'journals' => $journals],
-        ]);
-
-        $filename = 'Jurnal-' . str_replace(' ', '-', $class->name) . '-' . $month . '.pdf';
-    } else {
-        // Cetak SEMUA kelas guru ini dalam bulan tersebut
-       $myClasses = SchoolClass::whereHas('teachers', fn($q) => $q->where('teacher_id', $teacherId))
-        ->orderBy('name')->get();
-
-        $groupedByClass = $myClasses->map(function ($class) use ($teacherId, $month) {
             $journals = TeachingJournal::with('attendances.student')
                 ->where('teacher_id', $teacherId)
-                ->where('class_id', $class->id)
+                ->where('class_id', $classId)
                 ->whereRaw("DATE_FORMAT(journal_date, '%Y-%m') = ?", [$month])
                 ->orderBy('journal_date')
                 ->get();
 
-            return ['class' => $class, 'journals' => $journals];
-        })->filter(fn($g) => $g['journals']->count() > 0)->values();
+            $groupedByClass = collect([
+                ['class' => $class, 'journals' => $journals],
+            ]);
 
-        $filename = 'Jurnal-Semua-Kelas-' . str_replace(' ', '-', $teacher->name) . '-' . $month . '.pdf';
+            $filename = 'Jurnal-' . str_replace(' ', '-', $class->name) . '-' . $month . '.pdf';
+        } else {
+            // Cetak SEMUA kelas guru ini pada bulan tersebut: diambil dari jurnal bulan itu,
+            // sehingga benar untuk periode manapun (termasuk semester yang sudah lewat)
+            $classIds = TeachingJournal::where('teacher_id', $teacherId)
+                ->whereRaw("DATE_FORMAT(journal_date, '%Y-%m') = ?", [$month])
+                ->distinct()->pluck('class_id');
+
+            $myClasses = SchoolClass::whereIn('id', $classIds)->orderBy('name')->get();
+
+            $groupedByClass = $myClasses->map(function ($class) use ($teacherId, $month) {
+                $journals = TeachingJournal::with('attendances.student')
+                    ->where('teacher_id', $teacherId)
+                    ->where('class_id', $class->id)
+                    ->whereRaw("DATE_FORMAT(journal_date, '%Y-%m') = ?", [$month])
+                    ->orderBy('journal_date')
+                    ->get();
+
+                return ['class' => $class, 'journals' => $journals];
+            })->filter(fn($g) => $g['journals']->count() > 0)->values();
+
+            $filename = 'Jurnal-Semua-Kelas-' . str_replace(' ', '-', $teacher->name) . '-' . $month . '.pdf';
+        }
+
+        $pdf = Pdf::loadView('guru.jurnal.print', [
+            'teacher' => $teacher,
+            'groupedByClass' => $groupedByClass,
+            'letterhead' => $letterhead,
+            'monthLabel' => $monthLabel,
+            'isAllClasses' => !$classId,
+        ])->setPaper('a4', 'portrait');
+
+        return $pdf->stream($filename);
     }
-
-    $pdf = Pdf::loadView('guru.jurnal.print', [
-        'teacher' => $teacher,
-        'groupedByClass' => $groupedByClass,
-        'letterhead' => $letterhead,
-        'monthLabel' => $monthLabel,
-        'isAllClasses' => !$classId,
-    ])->setPaper('a4', 'portrait');
-
-    return $pdf->stream($filename);
-}
 }

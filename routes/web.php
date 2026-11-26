@@ -35,6 +35,9 @@ use App\Http\Controllers\Admin\AdminClassController;
 use App\Http\Controllers\Admin\AdminLetterheadController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Guru\GuruRecapController;
+use App\Http\Controllers\Admin\AdminAcademicYearController;
+use App\Http\Controllers\Admin\AdminBackupController;
+use App\Http\Controllers\Guru\GuruPreviousGradeController;
 
 // ================= BERANDA =================
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -156,6 +159,10 @@ Route::prefix('guru')->name('guru.')->group(function () {
         Route::get('/rekap-nilai/{kelas}', [GuruRecapController::class, 'show'])->name('rekap.show');
         Route::post('/rekap-nilai/{kelas}', [GuruRecapController::class, 'save'])->name('rekap.save');
         Route::get('/rekap-nilai/{kelas}/export', [GuruRecapController::class, 'export'])->name('rekap.export');
+
+        Route::get('/nilai-semester-lalu', [GuruPreviousGradeController::class, 'index'])->name('nilai-lalu.index');
+        Route::get('/nilai-semester-lalu/{kelas}', [GuruPreviousGradeController::class, 'show'])->name('nilai-lalu.show');
+        Route::post('/nilai-semester-lalu/{kelas}', [GuruPreviousGradeController::class, 'save'])->name('nilai-lalu.save');
     });
 });
 
@@ -199,5 +206,20 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/kop-surat', [AdminLetterheadController::class, 'edit'])->name('letterhead.edit');
         Route::put('/kop-surat', [AdminLetterheadController::class, 'update'])->name('letterhead.update');
+
+        Route::get('/tahun-ajaran', [AdminAcademicYearController::class, 'index'])->name('tahun-ajaran.index');
+        Route::post('/tahun-ajaran', [AdminAcademicYearController::class, 'store'])->name('tahun-ajaran.store');
+        Route::get('/tahun-ajaran/naik-kelas', [AdminAcademicYearController::class, 'promoteForm'])->name('tahun-ajaran.promote');
+        Route::post('/tahun-ajaran/naik-kelas', [AdminAcademicYearController::class, 'promote'])->name('tahun-ajaran.promote.submit');
+        Route::put('/tahun-ajaran/{academicYear}', [AdminAcademicYearController::class, 'update'])->name('tahun-ajaran.update');
+        Route::post('/tahun-ajaran/{academicYear}/aktifkan', [AdminAcademicYearController::class, 'activate'])->name('tahun-ajaran.activate');
+        Route::delete('/tahun-ajaran/{academicYear}', [AdminAcademicYearController::class, 'destroy'])->name('tahun-ajaran.destroy');
+
+        Route::get('/backup', [AdminBackupController::class, 'index'])->name('backup.index');
+        Route::post('/backup', [AdminBackupController::class, 'store'])->name('backup.store');
+        Route::post('/backup/unggah', [AdminBackupController::class, 'upload'])->name('backup.upload');
+        Route::get('/backup/{file}/unduh', [AdminBackupController::class, 'download'])->where('file', '[A-Za-z0-9_\-]+\.sql')->name('backup.download');
+        Route::post('/backup/{file}/pulihkan', [AdminBackupController::class, 'restore'])->where('file', '[A-Za-z0-9_\-]+\.sql')->name('backup.restore');
+        Route::delete('/backup/{file}', [AdminBackupController::class, 'destroy'])->where('file', '[A-Za-z0-9_\-]+\.sql')->name('backup.destroy');
     });
 });

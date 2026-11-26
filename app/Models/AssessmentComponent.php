@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class AssessmentComponent extends Model
 {
-    protected $fillable = ['teacher_id', 'class_id', 'material_topic_id', 'name', 'weight', 'is_attendance', 'order_index'];
+    protected $fillable = [
+        'teacher_id', 'class_id', 'material_topic_id', 'academic_year_id',
+        'name', 'weight', 'is_attendance', 'order_index',
+    ];
 
     protected $casts = ['is_attendance' => 'boolean'];
 

@@ -8,7 +8,7 @@ class TeacherClass extends Model
 {
     protected $table = 'teacher_class';
 
-    protected $fillable = ['teacher_id', 'class_id', 'day', 'start_time', 'end_time'];
+    protected $fillable = ['teacher_id', 'class_id', 'day', 'start_time', 'end_time', 'academic_year_id'];
 
     public function teacher(): BelongsTo
     {

@@ -1,23 +1,43 @@
 <?php
 namespace App\Support;
 
+use Illuminate\Support\Facades\Route;
+
 class AdminNav
 {
     public static function items(): array
     {
-        return [
-            ['label' => 'Dashboard', 'icon' => 'dashboard', 'url' => route('admin.dashboard'), 'active' => 'admin.dashboard'],
-            ['label' => 'Data Guru', 'icon' => 'badge', 'url' => route('admin.guru.index'), 'active' => 'admin.guru.*'],
-            ['label' => 'Data Siswa', 'icon' => 'groups', 'url' => route('admin.siswa.index'), 'active' => 'admin.siswa.*'],
-            ['label' => 'Data Kelas', 'icon' => 'meeting_room', 'url' => route('admin.kelas.index'), 'active' => 'admin.kelas.*'],
-            ['label' => 'Materi', 'icon' => 'book', 'url' => route('admin.materi.index'), 'active' => 'admin.materi.*'],
-            ['label' => 'Topik Kurikulum', 'icon' => 'list_alt', 'url' => route('admin.topik-materi.index'), 'active' => 'admin.topik-materi.*'],
-            ['label' => 'Pembelajaran Digital', 'icon' => 'devices', 'url' => route('admin.pembelajaran-digital.index'), 'active' => 'admin.pembelajaran-digital.*'],
-            ['label' => 'Toolkit', 'icon' => 'calculate', 'url' => route('admin.toolkit.index'), 'active' => 'admin.toolkit.*'],
-            ['label' => 'Karya Siswa', 'icon' => 'auto_awesome_motion', 'url' => route('admin.karya-siswa.index'), 'active' => 'admin.karya-siswa.*'],
-            ['label' => 'Laporan', 'icon' => 'flag', 'url' => route('admin.laporan.index'), 'active' => 'admin.laporan.*'],
-            ['label' => 'Bank Soal', 'icon' => 'quiz', 'url' => route('admin.bank-soal.index'), 'active' => 'admin.bank-soal.*'],
-            ['label' => 'Kop Surat', 'icon' => 'article', 'url' => route('admin.letterhead.edit'), 'active' => 'admin.letterhead.*'],
+        $menu = [
+            ['Dashboard', 'dashboard', 'admin.dashboard', 'admin.dashboard'],
+            ['Data Guru', 'badge', 'admin.guru.index', 'admin.guru.*'],
+            ['Data Siswa', 'groups', 'admin.siswa.index', 'admin.siswa.*'],
+            ['Data Kelas', 'meeting_room', 'admin.kelas.index', 'admin.kelas.*'],
+            ['Tahun Ajaran', 'event_repeat', 'admin.tahun-ajaran.index', 'admin.tahun-ajaran.*'],
+            ['Materi', 'book', 'admin.materi.index', 'admin.materi.*'],
+            ['Topik Kurikulum', 'list_alt', 'admin.topik-materi.index', 'admin.topik-materi.*'],
+            ['Pembelajaran Digital', 'devices', 'admin.pembelajaran-digital.index', 'admin.pembelajaran-digital.*'],
+            ['Toolkit', 'calculate', 'admin.toolkit.index', 'admin.toolkit.*'],
+            ['Karya Siswa', 'auto_awesome_motion', 'admin.karya-siswa.index', 'admin.karya-siswa.*'],
+            ['Laporan', 'flag', 'admin.laporan.index', 'admin.laporan.*'],
+            ['Bank Soal', 'quiz', 'admin.bank-soal.index', 'admin.bank-soal.*'],
+            ['Backup Data', 'cloud_download', 'admin.backup.index', 'admin.backup.*'],
+            ['Kop Surat', 'article', 'admin.letterhead.edit', 'admin.letterhead.*'],
         ];
+
+        $items = [];
+        foreach ($menu as [$label, $icon, $route, $active]) {
+            // Lewati item bila route-nya belum terdaftar, supaya panel tidak error
+            if (!Route::has($route)) {
+                continue;
+            }
+            $items[] = [
+                'label' => $label,
+                'icon' => $icon,
+                'url' => route($route),
+                'active' => $active,
+            ];
+        }
+
+        return $items;
     }
 }

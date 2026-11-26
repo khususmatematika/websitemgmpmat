@@ -7,7 +7,12 @@
 @if (session('status'))
 <div class="p-3 bg-status-success/10 text-status-success rounded-md text-sm">{{ session('status') }}</div>
 @endif
-
+@if (!$hasAnySchedule)
+<div class="p-4 bg-status-warning/10 border border-status-warning/30 rounded-lg text-sm text-on-surface">
+    Belum ada jadwal mengajar untuk {{ $period?->label }}.
+    <a href="{{ route('guru.profile.edit') }}" class="font-bold text-math-teal underline">Isi jadwal di Profil Saya</a> terlebih dahulu.
+</div>
+@endif
 <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>

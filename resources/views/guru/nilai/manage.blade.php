@@ -4,16 +4,11 @@
 @section('dashboard-content')
 <style>
     .no-spinner::-webkit-outer-spin-button,
-    .no-spinner::-webkit-inner-spin-button {
-        -webkit-appearance: none;
-        margin: 0;
-    }
-    .no-spinner[type=number] {
-        -moz-appearance: textfield;
-    }
+    .no-spinner::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    .no-spinner[type=number] { -moz-appearance: textfield; }
 </style>
 
-<a href="{{ route('guru.nilai.index') }}" class="inline-flex items-center gap-1 text-sm font-bold text-on-surface-variant hover:text-math-teal mb-2">
+<a href="{{ route('guru.nilai.index', ['periode' => $period->id]) }}" class="inline-flex items-center gap-1 text-sm font-bold text-on-surface-variant hover:text-math-teal mb-2">
     <span class="material-symbols-outlined text-[18px]">arrow_back</span>
     Kembali Pilih Kelas/Materi
 </a>
@@ -21,9 +16,10 @@
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div>
         <h1 class="font-headline text-2xl font-bold text-navy-deep">{{ $topic->title }}</h1>
-        <p class="text-on-surface-variant text-sm">{{ $class->name }}</p>
+        <p class="text-on-surface-variant text-sm">{{ $class->name }} &middot; {{ $period->label }}</p>
     </div>
     <div class="flex flex-wrap gap-2">
+        @unless ($isReadOnly)
         <form method="POST" action="{{ route('guru.nilai.publish.toggle') }}">
             @csrf
             <input type="hidden" name="class_id" value="{{ $class->id }}">
@@ -35,8 +31,9 @@
                 {{ $isPublished ? 'Nilai Kelas Aktif' : 'Nilai Kelas Nonaktif' }}
             </button>
         </form>
+        @endunless
 
-        <a href="{{ route('guru.nilai.export', ['class_id' => $class->id, 'material_topic_id' => $topic->id]) }}"
+        <a href="{{ route('guru.nilai.export', ['class_id' => $class->id, 'material_topic_id' => $topic->id, 'periode' => $period->id]) }}"
            class="flex items-center gap-2 bg-navy-deep text-white px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-colors whitespace-nowrap">
             <span class="material-symbols-outlined text-[18px]">download</span>
             Download Excel
@@ -44,14 +41,21 @@
     </div>
 </div>
 
+@if ($isReadOnly)
+<div class="p-3 bg-status-warning/10 border border-status-warning/30 text-on-surface rounded-md text-sm flex items-center gap-2">
+    <span class="material-symbols-outlined text-status-warning text-[20px]">inventory_2</span>
+    Ini data arsip {{ $period->label }}. Hanya bisa dilihat dan diunduh, tidak bisa diubah.
+</div>
+@endif
+
 @if (session('status'))
 <div class="p-3 bg-status-success/10 text-status-success rounded-md text-sm">{{ session('status') }}</div>
 @endif
 
-{{-- Form Tambah Jenis Penilaian --}}
 <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6">
     <h2 class="font-headline text-lg font-bold text-navy-deep mb-4">Jenis Penilaian & Bobot</h2>
 
+    @unless ($isReadOnly)
     <form method="POST" action="{{ route('guru.nilai.component.store') }}" class="flex flex-col md:flex-row gap-3 mb-4">
         @csrf
         <input type="hidden" name="class_id" value="{{ $class->id }}">
@@ -64,25 +68,31 @@
         </label>
         <button class="bg-math-teal text-white px-4 py-2 rounded-md font-bold text-sm whitespace-nowrap">+ Tambah</button>
     </form>
+    @endunless
 
     <div class="flex flex-wrap gap-2">
-        @foreach ($components as $c)
+        @forelse ($components as $c)
         <span class="flex items-center gap-2 bg-surface-container px-3 py-1.5 rounded-full text-xs">
-            <button type="button" onclick="openEditComponent({{ $c->id }}, '{{ addslashes($c->name) }}', {{ $c->weight }}, {{ $c->is_attendance ? 'true' : 'false' }})"
-                    class="hover:underline {{ $c->is_attendance ? 'cursor-not-allowed opacity-70' : '' }}"
-                    {{ $c->is_attendance ? 'disabled title="Bobot kehadiran otomatis, tidak bisa diubah manual"' : '' }}>
-                {{ $c->name }} ({{ $c->weight }}%) {{ $c->is_attendance ? '— otomatis' : '' }}
-            </button>
+            @if ($isReadOnly || $c->is_attendance)
+                <span class="{{ $c->is_attendance ? 'opacity-70' : '' }}">{{ $c->name }} ({{ $c->weight }}%) {{ $c->is_attendance ? '- otomatis' : '' }}</span>
+            @else
+                <button type="button" onclick="openEditComponent({{ $c->id }}, '{{ addslashes($c->name) }}', {{ $c->weight }})" class="hover:underline">
+                    {{ $c->name }} ({{ $c->weight }}%)
+                </button>
+            @endif
+            @unless ($isReadOnly)
             <form action="{{ route('guru.nilai.component.destroy', $c) }}" method="POST" onsubmit="return confirm('Hapus jenis penilaian ini? Nilai yang sudah diinput ikut terhapus.')">
                 @csrf @method('DELETE')
                 <button class="text-status-error"><span class="material-symbols-outlined text-[14px] align-middle">close</span></button>
             </form>
+            @endunless
         </span>
-        @endforeach
+        @empty
+        <p class="text-xs text-on-surface-variant">Belum ada jenis penilaian pada periode ini.</p>
+        @endforelse
     </div>
 </div>
 
-{{-- Modal Edit Bobot --}}
 <div id="edit-component-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-xl w-full max-w-sm p-6">
         <h3 class="font-headline text-lg font-bold text-navy-deep mb-4">Edit Jenis Penilaian</h3>
@@ -107,12 +117,13 @@
     </div>
 </div>
 
-{{-- Tabel Input Nilai + Tambahan/Pengurangan --}}
 @if ($components->count() > 0)
 <div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6">
     <div class="flex items-center justify-between mb-4">
-        <h2 class="font-headline text-lg font-bold text-navy-deep">Input Nilai Siswa</h2>
+        <h2 class="font-headline text-lg font-bold text-navy-deep">{{ $isReadOnly ? 'Nilai Siswa (Arsip)' : 'Input Nilai Siswa' }}</h2>
+        @unless ($isReadOnly)
         <p class="text-xs text-on-surface-variant">Tip: bisa copy-paste kolom nilai langsung dari Excel.</p>
+        @endunless
     </div>
 
     <form method="POST" action="{{ route('guru.nilai.save') }}">
@@ -144,14 +155,13 @@
                                     {{ $attendancePercent[$student->id] ?? 0 }}
                                 </span>
                             @else
-                                @php
-                                    $existing = $existingScores[$c->id][$student->id]->score ?? '';
-                                @endphp
+                                @php $existing = $existingScores[$c->id][$student->id]->score ?? ''; @endphp
                                 <input type="number" step="1" min="0" max="100"
                                        name="scores[{{ $c->id }}][{{ $student->id }}]"
                                        value="{{ $existing !== '' ? (int) round($existing) : '' }}"
                                        data-col="{{ $c->id }}" data-row="{{ $rowIndex }}"
-                                       class="score-input no-spinner w-20 text-center rounded-md border-outline-variant text-sm">
+                                       {{ $isReadOnly ? 'disabled' : '' }}
+                                       class="score-input no-spinner w-20 text-center rounded-md border-outline-variant text-sm disabled:bg-surface-container">
                             @endif
                         </td>
                         @endforeach
@@ -160,6 +170,7 @@
                                    name="adjustments[{{ $student->id }}][bonus]"
                                    value="{{ (int) round($adjustments[$student->id]->bonus ?? 0) }}"
                                    data-row="{{ $rowIndex }}" data-type="bonus"
+                                   {{ $isReadOnly ? 'disabled' : '' }}
                                    class="adjustment-input no-spinner w-16 text-center rounded-md border-status-success/40 text-sm text-status-success font-bold bg-status-success/5">
                         </td>
                         <td class="p-2 text-center">
@@ -167,6 +178,7 @@
                                    name="adjustments[{{ $student->id }}][deduction]"
                                    value="{{ (int) round($adjustments[$student->id]->deduction ?? 0) }}"
                                    data-row="{{ $rowIndex }}" data-type="deduction"
+                                   {{ $isReadOnly ? 'disabled' : '' }}
                                    class="adjustment-input no-spinner w-16 text-center rounded-md border-status-error/40 text-sm text-status-error font-bold bg-error-container/10">
                         </td>
                         <td class="p-2 text-center font-bold text-navy-deep final-grade" data-row="{{ $rowIndex }}">-</td>
@@ -176,16 +188,19 @@
             </table>
         </div>
 
+        @unless ($isReadOnly)
         <button type="submit" class="mt-4 bg-math-teal text-white px-8 py-3 rounded-md font-bold">Simpan Semua Nilai</button>
+        @endunless
     </form>
 </div>
 @else
-<p class="text-on-surface-variant text-center py-12">Tambahkan minimal 1 jenis penilaian terlebih dahulu di atas.</p>
+<p class="text-on-surface-variant text-center py-12">
+    {{ $isReadOnly ? 'Tidak ada data penilaian pada periode ini.' : 'Tambahkan minimal 1 jenis penilaian terlebih dahulu di atas.' }}
+</p>
 @endif
 
 <script>
-function openEditComponent(id, name, weight, isAttendance) {
-    if (isAttendance) return;
+function openEditComponent(id, name, weight) {
     document.getElementById('edit-component-form').action = `/guru/nilai/komponen/${id}`;
     document.getElementById('edit-name').value = name;
     document.getElementById('edit-weight').value = weight;
@@ -216,7 +231,7 @@ document.querySelectorAll('.score-input').forEach(input => {
 });
 
 const components = @json($components->map(fn($c) => ['id' => $c->id, 'weight' => $c->weight, 'is_attendance' => $c->is_attendance]));
-const attendance = @json($attendancePercent);
+const attendance = @json(array_values($attendancePercent));
 
 function recalcAll() {
     const totalWeight = components.reduce((sum, c) => sum + parseFloat(c.weight), 0);
@@ -228,7 +243,7 @@ function recalcAll() {
         components.forEach(c => {
             let val = 0;
             if (c.is_attendance) {
-                val = parseFloat(Object.values(attendance)[row] ?? 0);
+                val = parseFloat(attendance[row] ?? 0);
             } else {
                 const input = document.querySelector(`.score-input[data-col="${c.id}"][data-row="${row}"]`);
                 val = input && input.value !== '' ? parseFloat(input.value) : 0;

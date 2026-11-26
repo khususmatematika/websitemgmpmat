@@ -16,14 +16,32 @@
 <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
     <div>
         <h1 class="font-headline text-2xl font-bold text-navy-deep">Rekap Nilai {{ $kelas->name }}</h1>
-        <p class="text-on-surface-variant text-sm">Nilai Akhir = (Σ nilai materi x bobot + ASAS x bobot ASAS) / total bobot.</p>
+        <p class="text-on-surface-variant text-sm">{{ $period->label }} &middot; Nilai Akhir = (jumlah nilai materi x bobot + ASAS x bobot ASAS) / total bobot.</p>
     </div>
-    <a href="{{ route('guru.rekap.export', $kelas) }}"
-       class="flex items-center gap-2 bg-navy-deep text-white px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-colors whitespace-nowrap">
-        <span class="material-symbols-outlined text-[18px]">download</span>
-        Download Excel
-    </a>
+    <div class="flex flex-wrap items-center gap-2">
+        <form method="GET" action="{{ route('guru.rekap.show', $kelas) }}">
+            <select name="periode" onchange="this.form.submit()" class="rounded-md border-outline-variant text-sm">
+                @foreach ($periods as $p)
+                    <option value="{{ $p->id }}" {{ $period->id === $p->id ? 'selected' : '' }}>
+                        {{ $p->label }}{{ $p->is_active ? ' (Aktif)' : ' - Arsip' }}
+                    </option>
+                @endforeach
+            </select>
+        </form>
+        <a href="{{ route('guru.rekap.export', [$kelas, 'periode' => $period->id]) }}"
+           class="flex items-center gap-2 bg-navy-deep text-white px-4 py-2 rounded-md font-bold text-sm hover:bg-math-teal transition-colors whitespace-nowrap">
+            <span class="material-symbols-outlined text-[18px]">download</span>
+            Download Excel
+        </a>
+    </div>
 </div>
+
+@if ($isReadOnly)
+<div class="p-3 bg-status-warning/10 border border-status-warning/30 text-on-surface rounded-md text-sm flex items-center gap-2">
+    <span class="material-symbols-outlined text-status-warning text-[20px]">inventory_2</span>
+    Ini data arsip {{ $period->label }}. Hanya bisa dilihat dan diunduh.
+</div>
+@endif
 
 @if (session('status'))
 <div class="p-3 bg-status-success/10 text-status-success rounded-md text-sm">{{ session('status') }}</div>
@@ -33,7 +51,7 @@
 @endif
 
 @if ($recap['topics']->isEmpty())
-<p class="text-on-surface-variant text-center py-12">Belum ada materi yang memiliki komponen penilaian di kelas ini. Buat dulu di menu Input Nilai.</p>
+<p class="text-on-surface-variant text-center py-12">Belum ada materi yang memiliki komponen penilaian di kelas ini pada periode ini.</p>
 @else
 <form method="POST" action="{{ route('guru.rekap.save', $kelas) }}" class="bg-white rounded-xl shadow-sm border border-outline-variant/30 p-6">
     @csrf
@@ -48,8 +66,8 @@
                         <span class="text-[10px] font-normal">Bobot</span>
                         <input type="number" min="0" step="1" name="topic_weights[{{ $t->id }}]"
                                value="{{ rtrim(rtrim(number_format($recap['topicWeights'][$t->id], 2, '.', ''), '0'), '.') }}"
-                               data-topic="{{ $t->id }}"
-                               class="topic-weight no-spinner w-14 text-center rounded-md border-outline-variant text-xs">
+                               data-topic="{{ $t->id }}" {{ $isReadOnly ? 'disabled' : '' }}
+                               class="topic-weight no-spinner w-14 text-center rounded-md border-outline-variant text-xs disabled:bg-surface-container">
                     </th>
                     @endforeach
                     <th class="p-3 text-center">Rata-rata<br>Materi</th>
@@ -58,7 +76,8 @@
                         <span class="text-[10px] font-normal">Bobot</span>
                         <input type="number" min="0" step="1" name="asas_weight" id="asas-weight"
                                value="{{ rtrim(rtrim(number_format($recap['asasWeight'], 2, '.', ''), '0'), '.') ?: 0 }}"
-                               class="no-spinner w-14 text-center rounded-md border-outline-variant text-xs">
+                               {{ $isReadOnly ? 'disabled' : '' }}
+                               class="no-spinner w-14 text-center rounded-md border-outline-variant text-xs disabled:bg-surface-container">
                     </th>
                     <th class="p-3 text-center">Nilai<br>Akhir</th>
                 </tr>
@@ -76,8 +95,8 @@
                     <td class="p-2 text-center font-bold materi-avg">{{ $row['materi_avg'] ?? '-' }}</td>
                     <td class="p-2 text-center bg-status-warning/5">
                         <input type="number" min="0" max="100" step="1" name="asas[{{ $row['student_id'] }}]"
-                               value="{{ $row['asas'] }}"
-                               class="asas-input no-spinner w-16 text-center rounded-md border-outline-variant text-sm">
+                               value="{{ $row['asas'] }}" {{ $isReadOnly ? 'disabled' : '' }}
+                               class="asas-input no-spinner w-16 text-center rounded-md border-outline-variant text-sm disabled:bg-surface-container">
                     </td>
                     <td class="p-2 text-center font-bold text-blue-600 final-cell">{{ $row['final'] ?? '-' }}</td>
                 </tr>
@@ -86,8 +105,10 @@
         </table>
     </div>
 
+    @unless ($isReadOnly)
     <p class="text-xs text-on-surface-variant mt-3">Nilai materi dihitung otomatis dari menu Input Nilai. Yang bisa diubah di sini hanya bobot dan nilai ASAS.</p>
     <button type="submit" class="mt-4 bg-math-teal text-white px-8 py-3 rounded-md font-bold">Simpan Bobot dan ASAS</button>
+    @endunless
 </form>
 
 <script>

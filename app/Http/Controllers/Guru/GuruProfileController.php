@@ -2,8 +2,10 @@
 namespace App\Http\Controllers\Guru;
 
 use App\Http\Controllers\Controller;
+use App\Models\AcademicYear;
 use App\Models\ActivityLog;
 use App\Models\SchoolClass;
+use App\Support\TeacherSchedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -23,11 +25,12 @@ class GuruProfileController extends Controller
     {
         $teacher = Auth::guard('guru')->user();
         $classes = SchoolClass::orderBy('name')->get();
+        $period = AcademicYear::active();
 
-        // Ambil SEMUA baris jadwal langsung dari tabel pivot (bukan lewat relasi belongsToMany
-        // yang bisa membingungkan tampilannya), supaya kelas yang sama di hari berbeda tetap muncul terpisah.
+        // Jadwal HANYA untuk periode aktif. Semester baru = jadwal kosong sampai guru mengisinya.
         $schedules = DB::table('teacher_class')
             ->where('teacher_id', $teacher->id)
+            ->where('academic_year_id', $period?->id)
             ->orderBy('id')
             ->get();
 
@@ -35,6 +38,7 @@ class GuruProfileController extends Controller
             'teacher' => $teacher,
             'classes' => $classes,
             'schedules' => $schedules,
+            'period' => $period,
         ] + $this->nav());
     }
 
@@ -71,24 +75,21 @@ class GuruProfileController extends Controller
 
         $teacher->update(collect($data)->except(['schedules', 'photo'])->toArray() + ($request->hasFile('photo') ? ['photo' => $data['photo']] : []));
 
-        // Hapus SEMUA jadwal lama guru ini, lalu insert ulang SETIAP baris apa adanya.
-        // Sengaja TIDAK pakai sync()/updateOrCreate berbasis class_id, karena itu akan
-        // menimpa baris dengan class_id yang sama (misal 1 kelas diajar di 2 hari berbeda).
-        DB::table('teacher_class')->where('teacher_id', $teacher->id)->delete();
-
+        // Ganti SEMUA jadwal guru ini pada periode aktif, apa adanya per baris
+        // (kelas yang sama di hari berbeda tetap tersimpan terpisah). Jadwal periode lain tidak disentuh.
+        $rows = [];
         foreach ($request->input('schedules', []) as $s) {
             if (empty($s['class_id'])) continue;
 
-            DB::table('teacher_class')->insert([
-                'teacher_id' => $teacher->id,
+            $rows[] = [
                 'class_id' => $s['class_id'],
                 'day' => $s['day'] ?? null,
                 'start_time' => $s['start_time'] ?? null,
                 'end_time' => $s['end_time'] ?? null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            ];
         }
+
+        TeacherSchedule::replaceForActive($teacher->id, $rows);
 
         ActivityLog::create([
             'actor_type' => 'teacher',

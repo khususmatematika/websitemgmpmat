@@ -15,6 +15,7 @@ class GuruNav
             ['label' => 'Bank Soal', 'icon' => 'quiz', 'url' => route('guru.bank-soal.index'), 'active' => 'guru.bank-soal.*'],
             ['label' => 'Generator Modul Ajar', 'icon' => 'auto_awesome', 'url' => route('guru.modul-ajar.index'), 'active' => 'guru.modul-ajar.*'],
             ['label' => 'Input Nilai', 'icon' => 'grade', 'url' => route('guru.nilai.index'), 'active' => 'guru.nilai.*'],
+            ['label' => 'Nilai Semester Lalu', 'icon' => 'history', 'url' => route('guru.nilai-lalu.index'), 'active' => 'guru.nilai-lalu.*'],
             ['label' => 'Rekap Nilai Kelas', 'icon' => 'table_chart', 'url' => route('guru.rekap.index'), 'active' => 'guru.rekap.*'],
             ['label' => 'Karya Siswa', 'icon' => 'auto_awesome_motion', 'url' => route('student-works.public'), 'active' => 'student-works.*', 'external' => true],
             ['label' => 'Forum', 'icon' => 'forum', 'url' => route('forum.public'), 'active' => 'forum.*', 'external' => true],

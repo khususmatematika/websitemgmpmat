@@ -5,13 +5,16 @@ use Illuminate\Database\Eloquent\Model;
 
 class GradePublication extends Model
 {
-    protected $fillable = ['teacher_id', 'class_id', 'material_topic_id', 'is_published'];
+    protected $fillable = ['teacher_id', 'class_id', 'material_topic_id', 'academic_year_id', 'is_published'];
     protected $casts = ['is_published' => 'boolean'];
 
-    public static function isPublished(int $classId, int $topicId): bool
+    public static function isPublished(int $classId, int $topicId, ?int $periodId = null): bool
     {
-        return self::where('class_id', $classId)
+        $periodId = $periodId ?? AcademicYear::activeId();
+
+        return (bool) self::where('class_id', $classId)
             ->where('material_topic_id', $topicId)
-            ->value('is_published') ?? false;
+            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
+            ->value('is_published');
     }
 }

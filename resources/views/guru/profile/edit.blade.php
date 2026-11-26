@@ -41,6 +41,10 @@
         <textarea name="description" rows="3" class="mt-1 w-full rounded-md border-outline-variant">{{ old('description', $teacher->description) }}</textarea>
     </div>
 
+    @if ($period)
+    <p class="text-xs text-on-surface-variant mb-2">Jadwal untuk <strong>{{ $period->label }}</strong>. Saat semester berganti, jadwal perlu diisi ulang.</p>
+    @endif
+
     <div>
         <h3 class="font-headline text-navy-deep mb-3">Kelas & Jadwal Mengajar</h3>
 
