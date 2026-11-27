@@ -38,6 +38,8 @@ use App\Http\Controllers\Guru\GuruRecapController;
 use App\Http\Controllers\Admin\AdminAcademicYearController;
 use App\Http\Controllers\Admin\AdminBackupController;
 use App\Http\Controllers\Guru\GuruPreviousGradeController;
+use App\Http\Controllers\Admin\AdminPasswordResetController;
+use App\Http\Controllers\Admin\AdminImpersonateController;
 
 // ================= BERANDA =================
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -221,5 +223,15 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/backup/{file}/unduh', [AdminBackupController::class, 'download'])->where('file', '[A-Za-z0-9_\-]+\.sql')->name('backup.download');
         Route::post('/backup/{file}/pulihkan', [AdminBackupController::class, 'restore'])->where('file', '[A-Za-z0-9_\-]+\.sql')->name('backup.restore');
         Route::delete('/backup/{file}', [AdminBackupController::class, 'destroy'])->where('file', '[A-Za-z0-9_\-]+\.sql')->name('backup.destroy');
+
+        Route::get('/reset-password', [AdminPasswordResetController::class, 'index'])->name('reset-password.index');
+        Route::post('/reset-password/{type}/{id}', [AdminPasswordResetController::class, 'reset'])
+            ->whereIn('type', ['guru', 'siswa'])->whereNumber('id')->name('reset-password.reset');
+        
+        Route::post('/akses-akun/{type}/{id}', [AdminImpersonateController::class, 'start'])
+            ->whereIn('type', ['guru', 'siswa'])->whereNumber('id')->name('impersonate.start');
     });
+    
 });
+
+Route::post('/kembali-ke-admin', [AdminImpersonateController::class, 'stop'])->name('impersonate.stop');

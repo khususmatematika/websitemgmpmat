@@ -1,120 +1,172 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="flex min-h-[calc(100vh-64px)] items-start relative">
+@php
+    $guard = $guard ?? 'guru';
+    $panelTitle = $panelTitle ?? 'Panel';
+    $dashUser = auth()->guard($guard)->user();
+    $dashPeriod = \App\Models\AcademicYear::active();
+    $initial = mb_strtoupper(mb_substr($dashUser->name ?? '?', 0, 1));
+@endphp
 
-    {{-- Overlay untuk mobile saat sidebar terbuka --}}
-    <div id="dashboard-backdrop" class="hidden fixed inset-0 bg-black/40 z-30 md:hidden" onclick="closeDashboardSidebar()"></div>
+<style>
+    #dash-aside { width: 256px; transition: width .2s ease; }
+    #dash-aside.is-collapsed { width: 76px; }
 
-    <aside id="sidebar"
-           class="fixed md:sticky top-[64px] md:top-[64px] left-0 h-[calc(100vh-64px)] w-72 md:w-64 border-r border-outline-variant bg-surface-container-low p-4 space-y-2 transition-transform md:transition-all duration-300 z-40 flex flex-col
-                  -translate-x-full md:translate-x-0">
+    #dash-aside.is-collapsed .nav-label,
+    #dash-aside.is-collapsed .brand-text,
+    #dash-aside.is-collapsed .user-text { display: none; }
 
-        <div class="flex items-center justify-between mb-4 px-1">
-            <div class="flex items-center gap-3 min-w-0 sidebar-full">
-                <div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center shrink-0">
-                    <span class="material-symbols-outlined text-on-primary">calculate</span>
-                </div>
-                <div class="min-w-0 nav-label">
-                    <p class="font-headline text-navy-deep text-sm font-bold truncate">{{ $panelTitle ?? 'Panel' }}</p>
-                    <p class="text-on-surface-variant text-xs truncate">{{ auth()->guard($guard)->user()->name }}</p>
-                </div>
-            </div>
-            <button id="sidebar-toggle" type="button" class="hidden md:block text-on-surface-variant hover:text-math-teal shrink-0" title="Sembunyikan/tampilkan menu">
-                <span class="material-symbols-outlined" id="sidebar-toggle-icon">chevron_left</span>
-            </button>
-            <button type="button" onclick="closeDashboardSidebar()" class="md:hidden text-on-surface-variant shrink-0">
-                <span class="material-symbols-outlined">close</span>
+    #dash-aside.is-collapsed .dash-top { justify-content: center; }
+    #dash-aside.is-collapsed .nav-link,
+    #dash-aside.is-collapsed .logout-btn {
+        justify-content: center; padding: 0; width: 48px; height: 48px; margin-left: auto; margin-right: auto;
+    }
+    #dash-aside.is-collapsed .active-bar { left: -14px; }
+    #dash-aside.is-collapsed .user-card { justify-content: center; padding-left: 0; padding-right: 0; }
+
+    .nav-scroll { overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #c4c6cf transparent; }
+    #dash-aside.is-collapsed .nav-scroll { scrollbar-width: none; }
+    #dash-aside.is-collapsed .nav-scroll::-webkit-scrollbar { display: none; }
+    .nav-scroll::-webkit-scrollbar { width: 4px; }
+    .nav-scroll::-webkit-scrollbar-thumb { background: #c4c6cf; border-radius: 4px; }
+
+    #dash-drawer { transform: translateX(-100%); transition: transform .25s ease; }
+    #dash-drawer.open { transform: translateX(0); }
+</style>
+
+<div class="flex min-h-[calc(100vh-62px)]">
+
+    {{-- SIDEBAR DESKTOP --}}
+    <aside id="dash-aside"
+           class="hidden md:flex flex-col shrink-0 sticky top-[62px] h-[calc(100vh-62px)] bg-white border-r border-outline-variant/50 z-30">
+        <div class="dash-top h-14 flex items-center justify-between px-3 border-b border-outline-variant/40 shrink-0">
+            <span class="brand-text font-headline font-bold text-navy-deep text-sm truncate pl-1">{{ $panelTitle }}</span>
+            <button type="button" id="dash-toggle" title="Ciutkan/lebarkan menu"
+                    class="w-10 h-10 rounded-xl hover:bg-surface-container flex items-center justify-center text-on-surface-variant shrink-0">
+                <span class="material-symbols-outlined" id="dash-toggle-icon">menu_open</span>
             </button>
         </div>
 
-        <nav class="flex-1 space-y-1 overflow-y-auto overflow-x-hidden">
-            @foreach ($navItems as $item)
-                <a href="{{ $item['url'] }}" title="{{ $item['label'] }}"
-                   class="flex items-center gap-3 p-3 rounded-lg font-medium transition-all relative group
-                          {{ request()->routeIs($item['active']) ? 'bg-secondary-container text-on-secondary-container' : 'text-on-surface-variant hover:bg-surface-variant' }}">
-                    <span class="material-symbols-outlined shrink-0">{{ $item['icon'] }}</span>
-                    <span class="font-label text-xs nav-label whitespace-nowrap">{{ $item['label'] }}</span>
-                    <span class="sidebar-tooltip hidden absolute left-full ml-2 whitespace-nowrap bg-navy-deep text-white text-xs px-2 py-1 rounded-md z-50 group-hover:block">
-                        {{ $item['label'] }}
-                    </span>
-                </a>
-            @endforeach
+        <nav class="nav-scroll flex-1 py-3 px-3 space-y-1">
+            @include('partials.dash-nav', ['navItems' => $navItems])
         </nav>
 
-        <div class="pt-4 mt-auto border-t border-outline-variant">
-            <form method="POST" action="{{ route($guard.'.logout') }}">
+        <div class="shrink-0 border-t border-outline-variant/40 p-3 space-y-2">
+            <div class="user-card flex items-center gap-3 px-2 py-1.5">
+                <div class="w-9 h-9 rounded-full bg-math-teal/10 text-math-teal font-bold flex items-center justify-center shrink-0" data-tip="{{ $dashUser->name }}">{{ $initial }}</div>
+                <div class="user-text min-w-0">
+                    <p class="text-sm font-bold text-navy-deep truncate">{{ $dashUser->name }}</p>
+                    @if ($dashPeriod)
+                        <p class="text-[10px] text-math-teal font-bold truncate">{{ $dashPeriod->label }}</p>
+                    @endif
+                </div>
+            </div>
+            <form method="POST" action="{{ route($guard . '.logout') }}">
                 @csrf
-                <button title="Keluar" class="w-full flex items-center gap-3 p-3 text-status-error hover:bg-error-container/30 rounded-lg relative group">
-                    <span class="material-symbols-outlined shrink-0">logout</span>
-                    <span class="font-label text-sm nav-label">Keluar</span>
-                    <span class="sidebar-tooltip hidden absolute left-full ml-2 whitespace-nowrap bg-navy-deep text-white text-xs px-2 py-1 rounded-md z-50 group-hover:block">
-                        Keluar
-                    </span>
+                <button data-tip="Keluar"
+                        class="logout-btn w-full h-11 px-3 rounded-xl flex items-center gap-3 text-sm font-medium text-status-error hover:bg-error-container/40 transition-colors">
+                    <span class="material-symbols-outlined text-[22px] shrink-0">logout</span>
+                    <span class="nav-label">Keluar</span>
                 </button>
             </form>
         </div>
     </aside>
 
-    <main class="flex-1 p-4 md:p-margin-desktop bg-surface-bg pb-12 min-w-0">
-        {{-- Tombol buka sidebar khusus mobile --}}
-        <button type="button" onclick="openDashboardSidebar()"
-                class="md:hidden flex items-center gap-2 mb-4 bg-white border border-outline-variant px-3 py-2 rounded-md text-sm font-bold text-navy-deep shadow-sm">
-            <span class="material-symbols-outlined text-[20px]">menu</span>
-            Menu
-        </button>
-
-        <div class="max-w-container-max mx-auto space-y-6 md:space-y-8">
-            @yield('dashboard-content')
+    {{-- KONTEN --}}
+    <div class="flex-1 min-w-0">
+        {{-- Bar atas khusus HP --}}
+        <div class="md:hidden sticky top-[62px] z-30 bg-white/90 backdrop-blur border-b border-outline-variant/50 flex items-center gap-2 px-3 py-2">
+            <button type="button" onclick="openDash()" class="w-10 h-10 rounded-xl hover:bg-surface-container flex items-center justify-center text-navy-deep">
+                <span class="material-symbols-outlined">menu</span>
+            </button>
+            <span class="font-headline font-bold text-navy-deep text-sm truncate">{{ $panelTitle }}</span>
+            @if ($dashPeriod)
+                <span class="ml-auto text-[10px] text-math-teal font-bold truncate max-w-[40%]">{{ $dashPeriod->label }}</span>
+            @endif
         </div>
-    </main>
+
+        <main class="p-4 md:p-8 pb-28 md:pb-10 space-y-6">
+            @yield('dashboard-content')
+        </main>
+    </div>
 </div>
+
+{{-- DRAWER HP --}}
+<div id="dash-backdrop" class="hidden fixed inset-0 bg-black/40 z-[60] md:hidden" onclick="closeDash()"></div>
+<div id="dash-drawer" class="fixed top-0 left-0 h-full w-72 bg-white z-[70] md:hidden shadow-2xl flex flex-col">
+    <div class="h-14 flex items-center justify-between px-4 border-b border-outline-variant/40 shrink-0">
+        <span class="font-headline font-bold text-navy-deep">{{ $panelTitle }}</span>
+        <button type="button" onclick="closeDash()" class="w-10 h-10 rounded-xl hover:bg-surface-container flex items-center justify-center">
+            <span class="material-symbols-outlined">close</span>
+        </button>
+    </div>
+    <nav class="nav-scroll flex-1 py-3 px-3 space-y-1">
+        @include('partials.dash-nav', ['navItems' => $navItems])
+    </nav>
+    <div class="shrink-0 border-t border-outline-variant/40 p-3">
+        <div class="flex items-center gap-3 px-2 py-1.5 mb-2">
+            <div class="w-9 h-9 rounded-full bg-math-teal/10 text-math-teal font-bold flex items-center justify-center">{{ $initial }}</div>
+            <div class="min-w-0">
+                <p class="text-sm font-bold text-navy-deep truncate">{{ $dashUser->name }}</p>
+                @if ($dashPeriod)<p class="text-[10px] text-math-teal font-bold truncate">{{ $dashPeriod->label }}</p>@endif
+            </div>
+        </div>
+        <form method="POST" action="{{ route($guard . '.logout') }}">
+            @csrf
+            <button class="w-full h-11 px-3 rounded-xl flex items-center gap-3 text-sm font-medium text-status-error hover:bg-error-container/40">
+                <span class="material-symbols-outlined text-[22px]">logout</span> Keluar
+            </button>
+        </form>
+    </div>
+</div>
+
+{{-- Tooltip tunggal (tidak terpotong oleh area scroll) --}}
+<div id="dash-tip" class="hidden fixed -translate-y-1/2 z-[80] bg-navy-deep text-white text-xs px-3 py-1.5 rounded-lg shadow-lg pointer-events-none whitespace-nowrap"></div>
 
 <script>
 (function () {
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('sidebar-toggle');
-    const toggleIcon = document.getElementById('sidebar-toggle-icon');
+    const aside = document.getElementById('dash-aside');
+    const icon = document.getElementById('dash-toggle-icon');
+    const tip = document.getElementById('dash-tip');
 
-    // --- Desktop collapse (icon-only) ---
-    function applyDesktopState(collapsed) {
-        if (window.innerWidth < 768) return;
-        if (collapsed) {
-            sidebar.classList.remove('md:w-64');
-            sidebar.classList.add('md:w-20');
-            sidebar.querySelectorAll('.nav-label').forEach(el => el.classList.add('hidden'));
-            sidebar.querySelectorAll('.sidebar-tooltip').forEach(el => el.classList.remove('hidden'));
-            toggleIcon.textContent = 'chevron_right';
-        } else {
-            sidebar.classList.remove('md:w-20');
-            sidebar.classList.add('md:w-64');
-            sidebar.querySelectorAll('.nav-label').forEach(el => el.classList.remove('hidden'));
-            sidebar.querySelectorAll('.sidebar-tooltip').forEach(el => el.classList.add('hidden'));
-            toggleIcon.textContent = 'chevron_left';
-        }
+    function apply(collapsed) {
+        aside.classList.toggle('is-collapsed', collapsed);
+        icon.textContent = collapsed ? 'menu' : 'menu_open';
     }
 
-    const savedCollapsed = localStorage.getItem('sidebar_collapsed') === '1';
-    applyDesktopState(savedCollapsed);
+    let saved = false;
+    try { saved = localStorage.getItem('dash_collapsed') === '1'; } catch (e) {}
+    apply(saved);
 
-    toggleBtn.addEventListener('click', () => {
-        const isCollapsed = sidebar.classList.contains('md:w-20');
-        const next = !isCollapsed;
-        applyDesktopState(next);
-        localStorage.setItem('sidebar_collapsed', next ? '1' : '0');
+    document.getElementById('dash-toggle').addEventListener('click', () => {
+        const next = !aside.classList.contains('is-collapsed');
+        apply(next);
+        tip.classList.add('hidden');
+        try { localStorage.setItem('dash_collapsed', next ? '1' : '0'); } catch (e) {}
     });
 
-    // --- Mobile drawer ---
-    window.openDashboardSidebar = function () {
-        sidebar.classList.remove('-translate-x-full');
-        document.getElementById('dashboard-backdrop').classList.remove('hidden');
-        document.body.style.overflow = 'hidden';
-    };
-    window.closeDashboardSidebar = function () {
-        sidebar.classList.add('-translate-x-full');
-        document.getElementById('dashboard-backdrop').classList.add('hidden');
-        document.body.style.overflow = '';
-    };
+    aside.querySelectorAll('[data-tip]').forEach(el => {
+        el.addEventListener('mouseenter', () => {
+            if (!aside.classList.contains('is-collapsed')) return;
+            const r = el.getBoundingClientRect();
+            tip.textContent = el.dataset.tip;
+            tip.style.top = (r.top + r.height / 2) + 'px';
+            tip.style.left = (r.right + 10) + 'px';
+            tip.classList.remove('hidden');
+        });
+        el.addEventListener('mouseleave', () => tip.classList.add('hidden'));
+    });
+    aside.querySelector('.nav-scroll').addEventListener('scroll', () => tip.classList.add('hidden'));
 })();
+
+function openDash() {
+    document.getElementById('dash-drawer').classList.add('open');
+    document.getElementById('dash-backdrop').classList.remove('hidden');
+}
+function closeDash() {
+    document.getElementById('dash-drawer').classList.remove('open');
+    document.getElementById('dash-backdrop').classList.add('hidden');
+}
 </script>
 @endsection

@@ -76,20 +76,16 @@ class GuruJournalController extends Controller
         $selectedDate = $request->get('date', now()->timezone('Asia/Jakarta')->toDateString());
         $selectedDayName = $this->dayNameFromDate($selectedDate);
 
-        // Jadwal mengikuti periode dari tanggal yang dipilih
-        $period = AcademicYear::forDate($selectedDate);
-        $periodId = $period?->id;
+        // Jadwal selalu periode aktif (disaring otomatis oleh model TeacherClass)
+        $period = AcademicYear::active();
 
         $schedulesForDate = TeacherClass::with('schoolClass')
             ->where('teacher_id', $teacherId)
             ->where('day', $selectedDayName)
-            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
             ->orderBy('start_time')
             ->get();
 
-        $hasAnySchedule = TeacherClass::where('teacher_id', $teacherId)
-            ->when($periodId, fn($q) => $q->where('academic_year_id', $periodId))
-            ->exists();
+        $hasAnySchedule = TeacherClass::where('teacher_id', $teacherId)->exists();
 
         $filledClassIds = TeachingJournal::where('teacher_id', $teacherId)
             ->where('journal_date', $selectedDate)
@@ -106,10 +102,8 @@ class GuruJournalController extends Controller
             ->orderByDesc('journal_date')
             ->get();
 
-        // Filter kelas pada daftar jurnal: kelas yang pernah ada jurnalnya + jadwal periode aktif
         $journalClassIds = TeachingJournal::where('teacher_id', $teacherId)->distinct()->pluck('class_id');
-        $activeClassIds = TeacherClass::where('teacher_id', $teacherId)
-            ->where('academic_year_id', AcademicYear::activeId())->pluck('class_id');
+        $activeClassIds = TeacherClass::where('teacher_id', $teacherId)->pluck('class_id');
         $myClasses = SchoolClass::whereIn('id', $journalClassIds->merge($activeClassIds)->unique())
             ->orderBy('name')->get();
 

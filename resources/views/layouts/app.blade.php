@@ -88,23 +88,23 @@
     @stack('styles')
 </head>
 <body class="bg-surface-bg font-body text-on-surface pb-16 md:pb-0">
-
+@include('partials.impersonation-banner')
    <header class="sticky top-0 w-full z-50 bg-white/80 backdrop-blur-xl border-b border-outline-variant/50 shadow-sm
                 {{ (!auth('guru')->check() && !auth('admin')->check()) ? 'hidden md:block' : 'block' }}">
-        <div class="max-w-container-max mx-auto flex justify-between items-center px-4 md:px-margin-desktop py-3">
+        <div class="max-w-container-max mx-auto flex justify-between items-center gap-3 px-3 md:px-5 lg:px-margin-desktop py-2.5 lg:py-3">
             <a href="{{ route('home') }}" class="flex items-center gap-2.5 shrink-0 group">
                 <div class="w-9 h-9 rounded-xl bg-white shadow-md shadow-navy-deep/20 group-hover:scale-105 transition-transform overflow-hidden flex items-center justify-center p-0.5">
                     <img src="{{ asset('images/logo-sman1turen.png') }}" alt="Logo SMAN 1 Turen" class="w-full h-full object-contain">
                 </div>
-                <div class="flex flex-col leading-none">
-                    <span class="font-headline text-sm md:text-base font-bold text-navy-deep">SMAN 1 Turen</span>
+                <div class="hidden lg:flex flex-col leading-none">
+                    <span class="font-headline text-base font-bold text-navy-deep">SMAN 1 Turen</span>
                     <span class="font-label text-[9px] text-math-teal tracking-wider uppercase">Math Portal</span>
                 </div>
             </a>
 
             @guest('guru')
                 @guest('admin')
-                <nav class="hidden md:flex items-center gap-1.5 bg-surface-container-low rounded-full p-1.5">
+                <nav class="hidden md:flex items-center gap-1 lg:gap-1.5 bg-surface-container-low rounded-full p-1 lg:p-1.5 min-w-0">
                     @php
                         $guestNav = [
                             ['url' => route('home'), 'icon' => 'home', 'label' => 'Beranda'],
@@ -120,37 +120,39 @@
                     @endphp
                     @foreach ($guestNav as $item)
                     <a href="{{ $item['url'] }}"
-                    class="nav-icon-btn relative flex items-center justify-center w-10 h-10 rounded-full transition-all duration-200
-                            {{ request()->url() === $item['url'] ? 'bg-navy-deep text-white shadow-md scale-105' : 'text-on-surface-variant hover:bg-white hover:text-math-teal hover:shadow-sm hover:scale-105' }}">
-                        <span class="material-symbols-outlined text-[19px]" @if(request()->url() === $item['url']) style="font-variation-settings: 'FILL' 1;" @endif>{{ $item['icon'] }}</span>
+                    class="nav-icon-btn relative flex items-center justify-center w-9 h-9 lg:w-10 lg:h-10 rounded-full transition-all duration-200
+                            {{ request()->url() === $item['url'] ? 'bg-navy-deep text-white shadow-md' : 'text-on-surface-variant hover:bg-white hover:text-math-teal hover:shadow-sm' }}">
+                        <span class="material-symbols-outlined text-[18px] lg:text-[19px]" @if(request()->url() === $item['url']) style="font-variation-settings: 'FILL' 1;" @endif>{{ $item['icon'] }}</span>
                         <span class="nav-tooltip absolute top-full mt-2.5 whitespace-nowrap bg-navy-deep text-white text-xs px-3 py-1.5 rounded-lg z-50 pointer-events-none shadow-lg">
                             {{ $item['label'] }}
                         </span>
                     </a>
                     @endforeach
                 </nav>
-                <a href="{{ route('login') }}" class="flex items-center gap-2 bg-navy-deep text-white px-4 md:px-5 py-2.5 rounded-full font-bold text-sm hover:bg-math-teal hover:shadow-lg hover:shadow-math-teal/30 active:scale-95 transition-all shrink-0">
-                    <span class="material-symbols-outlined text-[18px]">account_circle</span>
-                    <span class="hidden sm:inline">Masuk</span>
+                <a href="{{ route('login') }}" title="Masuk"
+                class="flex items-center justify-center gap-2 bg-navy-deep text-white w-10 h-10 lg:w-auto lg:h-auto lg:px-5 lg:py-2.5 rounded-full font-bold text-sm hover:bg-math-teal hover:shadow-lg hover:shadow-math-teal/30 active:scale-95 transition-all shrink-0">
+                    <span class="material-symbols-outlined text-[20px] lg:text-[18px]">account_circle</span>
+                    <span class="hidden lg:inline">Masuk</span>
                 </a>
                 @endguest
             @endguest
 
             @auth('guru')
-            <div class="flex items-center gap-3">
-                <a href="{{ route('guru.dashboard') }}" class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-low text-sm font-bold text-navy-deep hover:bg-math-teal/10 hover:text-math-teal transition-colors">
+            <div class="flex items-center gap-2 lg:gap-3 min-w-0">
+                <a href="{{ route('guru.dashboard') }}" title="Dashboard"
+                class="flex items-center justify-center gap-2 w-10 h-10 lg:w-auto lg:h-auto lg:px-4 lg:py-2 rounded-full bg-surface-container-low text-sm font-bold text-navy-deep hover:bg-math-teal/10 hover:text-math-teal transition-colors">
                     <span class="material-symbols-outlined text-[18px]">dashboard</span>
-                    <span class="hidden sm:inline">Dashboard</span>
+                    <span class="hidden lg:inline">Dashboard</span>
                 </a>
-                <div class="hidden md:flex items-center gap-2 pl-3 border-l border-outline-variant">
-                    <div class="w-8 h-8 rounded-full bg-math-teal/10 flex items-center justify-center">
+                <div class="hidden lg:flex items-center gap-2 pl-3 border-l border-outline-variant min-w-0">
+                    <div class="w-8 h-8 rounded-full bg-math-teal/10 flex items-center justify-center shrink-0">
                         <span class="material-symbols-outlined text-math-teal text-[16px]">person</span>
                     </div>
-                    <span class="text-sm text-on-surface-variant font-medium">{{ auth('guru')->user()->name }}</span>
+                    <span class="text-sm text-on-surface-variant font-medium truncate max-w-[10rem]">{{ auth('guru')->user()->name }}</span>
                 </div>
                 <form method="POST" action="{{ route('guru.logout') }}">
                     @csrf
-                    <button class="w-9 h-9 flex items-center justify-center rounded-full text-status-error hover:bg-error-container/40 transition-colors" title="Keluar">
+                    <button class="w-10 h-10 flex items-center justify-center rounded-full text-status-error hover:bg-error-container/40 transition-colors" title="Keluar">
                         <span class="material-symbols-outlined text-[20px]">logout</span>
                     </button>
                 </form>
@@ -158,20 +160,21 @@
             @endauth
 
             @auth('admin')
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2 px-4 py-2 rounded-full bg-surface-container-low text-sm font-bold text-navy-deep hover:bg-math-teal/10 hover:text-math-teal transition-colors">
+            <div class="flex items-center gap-2 lg:gap-3 min-w-0">
+                <a href="{{ route('admin.dashboard') }}" title="Dashboard"
+                class="flex items-center justify-center gap-2 w-10 h-10 lg:w-auto lg:h-auto lg:px-4 lg:py-2 rounded-full bg-surface-container-low text-sm font-bold text-navy-deep hover:bg-math-teal/10 hover:text-math-teal transition-colors">
                     <span class="material-symbols-outlined text-[18px]">dashboard</span>
-                    <span class="hidden sm:inline">Dashboard</span>
+                    <span class="hidden lg:inline">Dashboard</span>
                 </a>
-                <div class="hidden md:flex items-center gap-2 pl-3 border-l border-outline-variant">
-                    <div class="w-8 h-8 rounded-full bg-navy-deep/10 flex items-center justify-center">
+                <div class="hidden lg:flex items-center gap-2 pl-3 border-l border-outline-variant min-w-0">
+                    <div class="w-8 h-8 rounded-full bg-navy-deep/10 flex items-center justify-center shrink-0">
                         <span class="material-symbols-outlined text-navy-deep text-[16px]">admin_panel_settings</span>
                     </div>
-                    <span class="text-sm text-on-surface-variant font-medium">{{ auth('admin')->user()->name }}</span>
+                    <span class="text-sm text-on-surface-variant font-medium truncate max-w-[10rem]">{{ auth('admin')->user()->name }}</span>
                 </div>
                 <form method="POST" action="{{ route('admin.logout') }}">
                     @csrf
-                    <button class="w-9 h-9 flex items-center justify-center rounded-full text-status-error hover:bg-error-container/40 transition-colors" title="Keluar">
+                    <button class="w-10 h-10 flex items-center justify-center rounded-full text-status-error hover:bg-error-container/40 transition-colors" title="Keluar">
                         <span class="material-symbols-outlined text-[20px]">logout</span>
                     </button>
                 </form>

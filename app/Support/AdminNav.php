@@ -9,10 +9,11 @@ class AdminNav
     {
         $menu = [
             ['Dashboard', 'dashboard', 'admin.dashboard', 'admin.dashboard'],
+            ['Tahun Ajaran', 'event_repeat', 'admin.tahun-ajaran.index', 'admin.tahun-ajaran.*'],
             ['Data Guru', 'badge', 'admin.guru.index', 'admin.guru.*'],
             ['Data Siswa', 'groups', 'admin.siswa.index', 'admin.siswa.*'],
+            ['Reset Password', 'lock_reset', 'admin.reset-password.index', 'admin.reset-password.*'],
             ['Data Kelas', 'meeting_room', 'admin.kelas.index', 'admin.kelas.*'],
-            ['Tahun Ajaran', 'event_repeat', 'admin.tahun-ajaran.index', 'admin.tahun-ajaran.*'],
             ['Materi', 'book', 'admin.materi.index', 'admin.materi.*'],
             ['Topik Kurikulum', 'list_alt', 'admin.topik-materi.index', 'admin.topik-materi.*'],
             ['Pembelajaran Digital', 'devices', 'admin.pembelajaran-digital.index', 'admin.pembelajaran-digital.*'],
@@ -20,8 +21,8 @@ class AdminNav
             ['Karya Siswa', 'auto_awesome_motion', 'admin.karya-siswa.index', 'admin.karya-siswa.*'],
             ['Laporan', 'flag', 'admin.laporan.index', 'admin.laporan.*'],
             ['Bank Soal', 'quiz', 'admin.bank-soal.index', 'admin.bank-soal.*'],
-            ['Backup Data', 'cloud_download', 'admin.backup.index', 'admin.backup.*'],
             ['Kop Surat', 'article', 'admin.letterhead.edit', 'admin.letterhead.*'],
+            ['Backup Data', 'cloud_download', 'admin.backup.index', 'admin.backup.*'],
         ];
 
         $items = [];
